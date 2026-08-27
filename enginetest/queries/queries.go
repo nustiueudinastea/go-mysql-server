@@ -10035,6 +10035,14 @@ var ErrorQueries = []QueryErrorTest{
 		ExpectedErrStr: "invalid AS OF expression type",
 	},
 	{
+		Query:       "SELECT i FROM myhistorytable AS OF ?",
+		ExpectedErr: sql.ErrInvalidAsOfExpression,
+	},
+	{
+		Query:       "SELECT i FROM myhistorytable AS OF :rev",
+		ExpectedErr: sql.ErrInvalidAsOfExpression,
+	},
+	{
 		Query:       "SELECT pk FROM one_pk WHERE pk > ?",
 		ExpectedErr: sql.ErrUnboundPreparedStatementVariable,
 	},
