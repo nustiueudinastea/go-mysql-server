@@ -323,6 +323,9 @@ func validateColumnDefault(ctx *sql.Context, col *sql.Column, colDefault *sql.Co
 // validateEnumLiteralDefault validates enum literal defaults more strictly than runtime conversions
 // MySQL doesn't allow numeric index references for literal enum defaults
 func validateEnumLiteralDefault(enumType sql.EnumType, colDefault *sql.ColumnDefaultValue, columnName string, ctx *sql.Context) error {
+	if err := ctx.ValidateExpression(colDefault.Expr); err != nil {
+		return err
+	}
 	val, err := colDefault.Expr.Eval(ctx, nil)
 	if err != nil {
 		return err
@@ -495,6 +498,9 @@ func normalizeDefault(ctx *sql.Context, colDefault *sql.ColumnDefaultValue) (sql
 	typ := colDefault.Type(ctx)
 	if skipDefaultNormalizationForType(typ) {
 		return colDefault, transform.SameTree, nil
+	}
+	if err := ctx.ValidateExpression(colDefault); err != nil {
+		return colDefault, transform.SameTree, err
 	}
 	val, err := colDefault.Eval(ctx, nil)
 	if err != nil {

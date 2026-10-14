@@ -552,6 +552,81 @@ in `.git/patch-evidence/g7b/`. Reproduce the architecture comparison with
 `scripts/check_rule_based_plans.sh /path/to/output-directory` on an arm64 host
 with amd64 execution support. This check does not alter Go cache settings.
 
+## G8 — Context validators for analysis and planning
+
+Commit: the G8 commit containing this entry, appended to `6454d622b`.
+
+`ctx.SetValidators(node func(*sql.Context, sql.Node) error,
+expr func(*sql.Context, sql.Expression) error)` installs optional embedding-only
+validators. Both default to nil. Derived contexts inherit the callbacks by value;
+a fresh context sharing the session starts without them. Passing nil clears a
+callback. SQL system/session variables cannot set them, and similarly named user
+variables have no effect. Install validators before building the statement.
+`ValidateNode` and `ValidateExpression` wrap rejections with `%w`, preserving
+`errors.Is`. Callbacks receive the current derived context and may inspect the
+supplied object's children; they may run repeatedly on the same object.
+
+Call sites:
+
+- `sql/planbuilder/scalar.go`: validate each resolved `buildScalar` return after
+  bind-type fixup, including CHECK, DEFAULT, generated and ON UPDATE definitions.
+- `sql/analyzer/analyzer.go`: validate each input before rules and each successful
+  output after the last selected batch and memo lowering. The common selector
+  includes shortened SELECT/UPDATE/DELETE batches, recursive subqueries, trigger
+  bodies, and paths with no batches. EXPLAIN's wrapper is also validated.
+- Immediately before all 15 expression `Eval` calls in analyzer/planbuilder:
+  constant folding (`optimization_rules.go`), enum defaults and normalization
+  (`resolve_column_defaults.go`), LIMIT/OFFSET (`validation_rules.go`), both index
+  bound evaluations (`costed_index_scan.go`), SET (`planbuilder/set.go`), OFFSET
+  (`select.go`), character-set introducers (`scalar.go`), KILL connection IDs
+  (`process.go`), AS OF (`show.go`), and procedure AS OF (`proc.go`).
+- `sql/columndefault.go`: guard `CheckType`'s indirect analysis-time evaluation.
+  Validator errors bypass existing ordinary-evaluation fallback handling.
+  Index-bound rejections propagate through both costed and rule-based planning.
+- Precision inspection in `planbuilder/ddl.go` now reads the known literal's
+  `Value()` directly instead of evaluating it with a nil context.
+
+`sql/analyzer/eval_inventory_test.go` inventories every production `Eval`
+reference in both source trees, plus `columndefault.go`. It checks counts and
+immediately preceding validation guards. The batch runner is classified as
+non-expression evaluation; runtime default delegation is exempt because its
+planning caller validates it. A temporary new Eval site was injected: the test
+failed with `UNCLASSIFIED`, then passed after that temporary file was removed.
+
+Tests in `context_validators_test.go`, `sql/session_test.go`,
+`sql/analyzer/context_validators_test.go` and
+`sql/planbuilder/context_validators_test.go` cover:
+
+- Zero evaluations of rejected counted functions in scalar SELECTs, folding in a
+  SELECT filter, dead CASE branches, column defaults, CHECK and generated
+  definitions, and a bound LIMIT value; separate analyzer tests install the
+  callback only after building and prove the unguarded controls evaluate.
+- Direct default normalization, default type checking, enum-default and index
+  bound evaluation; LIMIT/OFFSET, SET, AS OF and introducer rejection;
+  bind-type fixup, ON UPDATE, SQL isolation, inheritance and independent setters.
+- Entry rejection before rules and final-plan validation for simple SELECT,
+  UPDATE, DELETE, INSERT SELECT, joins, subqueries, EXPLAIN, COMMIT, CREATE TRIGGER
+  and the analyzed body of an installed trigger used by UPDATE.
+
+Parent evidence: copying the tests to detached `6454d622b` fails to compile
+because the API is absent. Applying only `sql/session.go`'s context API lets the
+tests run: behavioral regressions and the unguarded-source inventory fail.
+Folded SELECT/dead CASE and default evaluation counters are 1 instead of 0;
+index IN bounds evaluate twice. Parent callbacks never see the final plans.
+The standalone context API tests pass with that API-only patch.
+
+Validation (default caches, identity and signing; no existing fixtures changed):
+
+```sh
+go test -p 2 -count=1 -tags=gms_pure_go . ./sql ./sql/analyzer ./sql/planbuilder
+go test -p 2 -count=1 -tags=gms_pure_go ./enginetest/ -run 'TestQueryPlans|TestJoinPlanning|TestIndexQueryPlans|TestQueries'
+```
+
+Both checks pass, as do gofmt and `git diff --check`. The known 42 TestRegex
+failures documented under G6/G7 are outside this requested enginetest selection;
+no failures occur in G8's required checks. Evidence, the API-only parent patch,
+and the inventory injection failure are in `.git/patch-evidence/g8/`.
+
 ## Validation and reproduction
 
 Every changed Go file was formatted with `gofmt`; `git diff --check` passes.

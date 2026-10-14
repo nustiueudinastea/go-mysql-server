@@ -16,6 +16,7 @@ package sql
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"testing"
 
@@ -113,4 +114,24 @@ func TestDisableCostBasedPlansContext(t *testing.T) {
 	require.True(t, ctx.DisableCostBasedPlans())
 	ctx.SetDisableCostBasedPlans(false)
 	require.False(t, ctx.DisableCostBasedPlans())
+}
+
+func TestContextValidators(t *testing.T) {
+	ctx := NewEmptyContext()
+	nodeErr, exprErr := fmt.Errorf("node rejected"), fmt.Errorf("expression rejected")
+	ctx.SetValidators(func(*Context, Node) error { return nodeErr }, func(*Context, Expression) error { return exprErr })
+	child, cancel := ctx.NewSubContext()
+	defer cancel()
+	for _, derived := range []*Context{ctx.WithContext(context.Background()), ctx.WithQuery("SELECT 1"), ctx.WithClient(Client{}), child} {
+		require.ErrorIs(t, derived.ValidateNode(nil), nodeErr)
+		require.ErrorIs(t, derived.ValidateExpression(nil), exprErr)
+		derived.SetValidators(nil, nil)
+		require.NoError(t, derived.ValidateNode(nil))
+		require.NoError(t, derived.ValidateExpression(nil))
+		require.ErrorIs(t, ctx.ValidateNode(nil), nodeErr)
+		require.ErrorIs(t, ctx.ValidateExpression(nil), exprErr)
+	}
+	independent := NewContext(context.Background(), WithSession(ctx.Session))
+	require.NoError(t, independent.ValidateNode(nil))
+	require.NoError(t, independent.ValidateExpression(nil))
 }

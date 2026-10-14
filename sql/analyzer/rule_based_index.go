@@ -61,6 +61,9 @@ func ruleBasedIndexPlans(ctx *sql.Context, a *Analyzer, n sql.Node, _ *plan.Scop
 				return n, transform.SameTree, err
 			}
 			root, leftover, imprecise := c.buildRoot(ctx, n.Expression, &defaultLogicTreeWalker{})
+			if c.validationErr != nil {
+				return n, transform.SameTree, c.validationErr
+			}
 			var leaves []*iScanLeaf
 			switch root := root.(type) {
 			case *iScanAnd:

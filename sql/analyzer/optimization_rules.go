@@ -322,6 +322,9 @@ func simplifyExpression(ctx *sql.Context, a *Analyzer, scope *plan.Scope, sel Ru
 			}
 
 			// All other expressions types can be evaluated once and turned into literals for the rest of query execution
+			if err := ctx.ValidateExpression(e); err != nil {
+				return e, transform.SameTree, err
+			}
 			val, err := e.Eval(ctx, nil)
 			if err != nil {
 				return e, transform.SameTree, err

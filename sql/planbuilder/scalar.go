@@ -46,6 +46,15 @@ func (b *Builder) buildWhere(inScope *scope, where *ast.Where) {
 }
 
 func (b *Builder) buildScalar(inScope *scope, e ast.Expr) (ex sql.Expression) {
+	// Register validation first so it runs after bind-type fixup below. A nil
+	// result means construction failed; preserve the original build error.
+	defer func() {
+		if ex != nil && ex.Resolved() {
+			if err := b.ctx.ValidateExpression(ex); err != nil {
+				b.handleErr(err)
+			}
+		}
+	}()
 	defer func() {
 		if !(b.bindCtx == nil || b.bindCtx.resolveOnly) {
 			return
@@ -721,6 +730,9 @@ func (b *Builder) buildUnaryScalar(inScope *scope, e *ast.UnaryExpr) sql.Express
 			expr := b.buildScalar(inScope, e.Expr)
 			if _, ok := expr.(*expression.Literal); !ok || !types.IsText(expr.Type(b.ctx)) {
 				err := sql.ErrCharSetIntroducer.New()
+				b.handleErr(err)
+			}
+			if err := b.ctx.ValidateExpression(expr); err != nil {
 				b.handleErr(err)
 			}
 			literal, _ := expr.Eval(b.ctx, nil)

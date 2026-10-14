@@ -278,6 +278,9 @@ func (b *Builder) simplifySetExpr(name *ast.ColName, varScope ast.SetScope, val 
 			return nil, false
 		}
 		e := expression.NewLiteral(string(val.Val), types.Text)
+		if err := b.ctx.ValidateExpression(e); err != nil {
+			b.handleErr(err)
+		}
 		res, err := e.Eval(b.ctx, nil)
 		if err != nil {
 			b.handleErr(err)
@@ -319,6 +322,9 @@ func (b *Builder) simplifySetExpr(name *ast.ColName, varScope ast.SetScope, val 
 			return sysVar, true
 		}
 		e := expression.NewLiteral(val.Name.String(), types.Text)
+		if err := b.ctx.ValidateExpression(e); err != nil {
+			b.handleErr(err)
+		}
 		res, err := e.Eval(b.ctx, nil)
 		if err != nil {
 			b.handleErr(err)
@@ -352,6 +358,9 @@ func (b *Builder) simplifySetExpr(name *ast.ColName, varScope ast.SetScope, val 
 	case *ast.BoolVal:
 		// conv
 		e := expression.NewLiteral(val, types.Text)
+		if err := b.ctx.ValidateExpression(e); err != nil {
+			b.handleErr(err)
+		}
 		res, err := e.Eval(b.ctx, nil)
 		if err != nil {
 			b.handleErr(err)

@@ -638,6 +638,9 @@ func (b *Builder) buildAsOfLit(inScope *scope, t ast.Expr) interface{} {
 		// buildAsOfExpr returns nil for a bind variable with no value to substitute.
 		b.handleErr(sql.ErrInvalidAsOfExpression.New(t))
 	}
+	if err := b.ctx.ValidateExpression(expr); err != nil {
+		b.handleErr(err)
+	}
 	res, err := expr.Eval(b.ctx, nil)
 	if err != nil {
 		b.handleErr(err)

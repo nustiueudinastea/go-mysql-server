@@ -47,6 +47,9 @@ func (b *Builder) buildKill(inScope *scope, kill *ast.Kill) (outScope *scope) {
 func (b *Builder) getInt64Value(inScope *scope, expr ast.Expr, errStr string) int64 {
 	ie := b.getInt64Literal(inScope, expr, errStr)
 
+	if err := b.ctx.ValidateExpression(ie); err != nil {
+		b.handleErr(err)
+	}
 	i, err := ie.Eval(b.ctx, nil)
 	if err != nil {
 		b.handleErr(err)

@@ -319,6 +319,8 @@ type Context struct {
 	redactionMapping *sqlredact.Mapping
 
 	disableCostBasedPlans bool
+	nodeValidator         func(*Context, Node) error
+	expressionValidator   func(*Context, Expression) error
 }
 
 // SetDisableCostBasedPlans controls whether analysis may choose plans using cost
@@ -331,6 +333,40 @@ func (c *Context) SetDisableCostBasedPlans(disable bool) {
 // DisableCostBasedPlans reports whether cost-based plan selection is disabled.
 func (c *Context) DisableCostBasedPlans() bool {
 	return c.disableCostBasedPlans
+}
+
+// SetValidators installs optional validators for analysis and planning. Set them
+// before building a statement. Derived contexts inherit them; SQL session and
+// system variables cannot change them. Passing nil removes a validator.
+//
+// The node validator receives the whole plan at each analyzer entry and successful
+// exit, including recursive analysis. The expression validator receives each
+// resolved scalar built by the planbuilder, and an expression immediately before
+// planning or analysis evaluates it. Validators may inspect children to reject
+// nested operations. They may be called more than once for the same object.
+func (c *Context) SetValidators(node func(*Context, Node) error, expr func(*Context, Expression) error) {
+	c.nodeValidator = node
+	c.expressionValidator = expr
+}
+
+// ValidateNode applies the context's node validator, if any.
+func (c *Context) ValidateNode(node Node) error {
+	if c != nil && c.nodeValidator != nil {
+		if err := c.nodeValidator(c, node); err != nil {
+			return fmt.Errorf("node validation: %w", err)
+		}
+	}
+	return nil
+}
+
+// ValidateExpression applies the context's expression validator, if any.
+func (c *Context) ValidateExpression(expr Expression) error {
+	if c != nil && c.expressionValidator != nil {
+		if err := c.expressionValidator(c, expr); err != nil {
+			return fmt.Errorf("expression validation: %w", err)
+		}
+	}
+	return nil
 }
 
 // ContextOption is a function to configure the context.

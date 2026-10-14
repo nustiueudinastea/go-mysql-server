@@ -31,14 +31,22 @@ import (
 // validateOffsetAndLimit ensures that only integer literals are used for limit and offset values
 func validateOffsetAndLimit(ctx *sql.Context, a *Analyzer, n sql.Node, scope *plan.Scope, sel RuleSelector, qFlags *sql.QueryFlags) (sql.Node, transform.TreeIdentity, error) {
 	var err error
+	var rejected bool
 	var i, i64 interface{}
 	transform.InspectWithOpaque(ctx, n, func(ctx *sql.Context, n sql.Node) bool {
+		if rejected {
+			return false
+		}
 		switch n := n.(type) {
 		case *plan.Limit:
 			switch e := n.Limit.(type) {
 			case *expression.Literal:
 				if !types.IsInteger(e.Type(ctx)) {
 					err = sql.ErrInvalidType.New(e.Type(ctx).String())
+					return false
+				}
+				if err = ctx.ValidateExpression(e); err != nil {
+					rejected = true
 					return false
 				}
 				i, err = e.Eval(ctx, nil)
@@ -65,6 +73,10 @@ func validateOffsetAndLimit(ctx *sql.Context, a *Analyzer, n sql.Node, scope *pl
 			case *expression.Literal:
 				if !types.IsInteger(e.Type(ctx)) {
 					err = sql.ErrInvalidType.New(e.Type(ctx).String())
+					return false
+				}
+				if err = ctx.ValidateExpression(e); err != nil {
+					rejected = true
 					return false
 				}
 				i, err = e.Eval(ctx, nil)

@@ -490,9 +490,16 @@ func newInsertSourceSelector(sel RuleSelector, inTrigger bool) RuleSelector {
 func (a *Analyzer) Analyze(ctx *sql.Context, node sql.Node, scope *plan.Scope, qFlags *sql.QueryFlags) (sql.Node, error) {
 	switch n := node.(type) {
 	case *plan.DescribeQuery:
+		if err := ctx.ValidateNode(n); err != nil {
+			return n, err
+		}
 		child, _, err := a.analyzeWithSelector(ctx, n.Query(), scope, SelectAllBatches, DefaultRuleSelector, qFlags)
 		qFlags.Unset(sql.QFlagMax1Row) // the rule replaceCountStar can set this incorrectly for queries containing count(*).
-		return n.WithQuery(child), err
+		node = n.WithQuery(child)
+		if err == nil {
+			err = ctx.ValidateNode(node)
+		}
+		return node, err
 	}
 	node, _, err := a.analyzeWithSelector(ctx, node, scope, SelectAllBatches, DefaultRuleSelector, qFlags)
 	return node, err
@@ -520,6 +527,11 @@ const maxBatchRecursion = 100
 func (a *Analyzer) analyzeWithSelector(ctx *sql.Context, n sql.Node, scope *plan.Scope, batchSelector BatchSelector, ruleSelector RuleSelector, qFlags *sql.QueryFlags) (sql.Node, transform.TreeIdentity, error) {
 	span, ctx := ctx.Span("analyze")
 	defer trace.StartRegion(ctx, "Analyzer.analyzeWithSelector").End()
+
+	if err := ctx.ValidateNode(n); err != nil {
+		span.End()
+		return n, transform.SameTree, err
+	}
 
 	if scope.RecursionDepth() > maxBatchRecursion {
 		return n, transform.SameTree, ErrMaxAnalysisIters.New(maxBatchRecursion)
@@ -559,6 +571,9 @@ func (a *Analyzer) analyzeWithSelector(ctx *sql.Context, n sql.Node, scope *plan
 		span.End()
 	}()
 
+	if err := ctx.ValidateNode(n); err != nil {
+		return n, allSame, err
+	}
 	return n, allSame, err
 }
 

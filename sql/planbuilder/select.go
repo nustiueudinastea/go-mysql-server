@@ -178,6 +178,9 @@ func (b *Builder) buildOffset(inScope *scope, limit *ast.Limit) sql.Expression {
 		if lit, ok := e.(*expression.Literal); ok {
 			// Check if offset starts at 0, if so, we can just remove the offset node.
 			// Only cast to int8, as a larger int type just means a non-zero offset.
+			if err := b.ctx.ValidateExpression(lit); err != nil {
+				b.handleErr(err)
+			}
 			if val, err := lit.Eval(b.ctx, nil); err == nil {
 				if v, ok := val.(int64); ok && v == 0 {
 					return nil

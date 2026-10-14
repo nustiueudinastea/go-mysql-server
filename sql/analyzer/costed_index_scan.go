@@ -281,6 +281,9 @@ func getCostedIndexScan(
 	c.indexedExprs = indexedExprs
 
 	root, leftover, imprecise := c.buildRoot(ctx, expression.JoinAnd(filters...), expressionWalker)
+	if c.validationErr != nil {
+		return nil, nil, nil, c.validationErr
+	}
 	if root == nil {
 		return nil, nil, nil, err
 	}
@@ -601,6 +604,8 @@ func newIndexCoster(underlyingName string) *indexCoster {
 // tables or planning operations. All fields are scoped to the one table and one set of filters
 // being evaluated.
 type indexCoster struct {
+	// Validation failures must abort planning, unlike unevaluable index bounds.
+	validationErr error
 	// bestStat is the lowest cardinality indexScan option
 	bestStat sql.Statistic
 	// idToExpr is a record of conj decomposition so we can remove duplicates later
@@ -1775,6 +1780,9 @@ func (c *indexCoster) normalizeLeafSides(ctx *sql.Context, op sql.IndexScanOp, l
 // the scan operation, and the literal expression on the other side of the comparison.
 // litExpr must be nil for unary operations (IsNull, IsNotNull) and non-nil otherwise.
 func (c *indexCoster) buildLeafFromParts(ctx *sql.Context, id indexScanId, name string, typ sql.Type, op sql.IndexScanOp, litExpr sql.Expression) (*iScanLeaf, bool) {
+	if c.validationErr != nil {
+		return nil, false
+	}
 	if op == sql.IndexScanOpIsNull || op == sql.IndexScanOpIsNotNull {
 		return &iScanLeaf{id: id, name: name, typ: typ, op: op, underlying: c.underlyingName}, true
 	}
@@ -1784,6 +1792,10 @@ func (c *indexCoster) buildLeafFromParts(ctx *sql.Context, id indexScanId, name 
 		var setTypes []sql.Type
 		var litType sql.Type
 		for _, lit := range tup {
+			if err := ctx.ValidateExpression(lit); err != nil {
+				c.validationErr = err
+				return nil, false
+			}
 			value, err := lit.Eval(ctx, nil)
 			if err != nil {
 				return nil, false
@@ -1806,6 +1818,10 @@ func (c *indexCoster) buildLeafFromParts(ctx *sql.Context, id indexScanId, name 
 		}, true
 	}
 	if !isEvaluable(ctx, litExpr) {
+		return nil, false
+	}
+	if err := ctx.ValidateExpression(litExpr); err != nil {
+		c.validationErr = err
 		return nil, false
 	}
 	value, err := litExpr.Eval(ctx, nil)

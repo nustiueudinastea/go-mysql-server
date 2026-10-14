@@ -1465,10 +1465,7 @@ func validatePrec(expr sql.Expression, colPrec int) (bool, error) {
 	if !isLit {
 		return true, nil
 	}
-	val, err := lit.Eval(nil, nil)
-	if err != nil {
-		return false, err
-	}
+	val := lit.Value()
 	prec, ok := types.CoalesceInt(val)
 	if !ok {
 		return false, nil

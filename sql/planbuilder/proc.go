@@ -242,6 +242,9 @@ func BuildProcedureHelper(ctx *sql.Context, cat sql.Catalog, isCreateProc bool, 
 	b.DisableAuth()
 	b.SetParserOptions(sql.NewSqlModeFromString(procDetails.SqlMode).ParserOptions())
 	if asOf != nil {
+		if err := b.ctx.ValidateExpression(asOf); err != nil {
+			b.handleErr(err)
+		}
 		asOf, err := asOf.Eval(b.ctx, nil)
 		if err != nil {
 			b.handleErr(err)
