@@ -250,8 +250,14 @@ func (t datetimeType) Convert(ctx context.Context, v any) (any, sql.ConvertInRan
 	case string:
 		res, _, err = t.parseDatetime(value)
 	case Timespan:
-		// when receiving TIME, MySQL fills in date with today
-		nowTimeStr := sql.Now().Format("2006-01-02")
+		// when receiving TIME, MySQL fills in date with today: the date of the
+		// query's time, which NOW() and CURDATE() also read, so a context whose
+		// query time is fixed converts the same way at any wall-clock time
+		now := sql.Now()
+		if sqlCtx, ok := ctx.(*sql.Context); ok && sqlCtx != nil && !sqlCtx.QueryTime().IsZero() {
+			now = sqlCtx.QueryTime()
+		}
+		nowTimeStr := now.Format("2006-01-02")
 		nowTime, err := time.Parse("2006-01-02", nowTimeStr)
 		if err != nil {
 			return ZeroTime, sql.InRange, sql.ErrTruncatedIncorrect.New(t.String(), v)
