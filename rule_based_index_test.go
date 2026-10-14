@@ -354,3 +354,45 @@ func TestRuleBasedIndexRowsRead(t *testing.T) {
 		})
 	}
 }
+
+// hashedTextTable models legacy content-hash ordering: b sorts before a, so an
+// incorrectly requested range above a only visits z. A scan visits all three.
+type hashedTextTable struct{ *memory.Table }
+
+func (t *hashedTextTable) IgnoreSessionData() bool                                   { return true }
+func (t *hashedTextTable) WithProjections(*sql.Context, []string) (sql.Table, error) { return t, nil }
+func (t *hashedTextTable) IndexedAccess(_ *sql.Context, _ sql.IndexLookup) sql.IndexedTable {
+	return &hashedTextAccess{t}
+}
+
+type hashedTextAccess struct{ *hashedTextTable }
+
+func (t *hashedTextAccess) LookupPartitions(*sql.Context, sql.IndexLookup) (sql.PartitionIter, error) {
+	return sql.PartitionsToPartitionIter(probePartition{}), nil
+}
+func (t *hashedTextAccess) PartitionRows(*sql.Context, sql.Partition) (sql.RowIter, error) {
+	return sql.RowsToRowIter(sql.Row{int32(3), "z"}), nil
+}
+
+func TestRuleBasedContentHashedIndexRange(t *testing.T) {
+	engine, ctx, db := rulePlanEngine(t)
+	query := func(q string) []sql.Row {
+		_, iter, _, err := engine.Query(ctx, q)
+		require.NoError(t, err)
+		rows, err := sql.RowIterToRows(ctx, iter)
+		require.NoError(t, err)
+		return rows
+	}
+	query("CREATE TABLE hashed (id INT PRIMARY KEY, s TEXT UNIQUE)")
+	query("INSERT INTO hashed VALUES (1,'a'),(2,'b'),(3,'z')")
+	table, ok, err := db.GetTableInsensitive(ctx, "hashed")
+	require.NoError(t, err)
+	require.True(t, ok)
+	db.AddTable("hashed", &hashedTextTable{table.(*memory.Table)})
+	for _, where := range []string{"s > 'a'", "s >= 'b'", "s > 'a' AND s IS NOT NULL"} {
+		t.Run(where, func(t *testing.T) {
+			rows := query("SELECT id FROM hashed WHERE " + where + " ORDER BY id")
+			require.Equal(t, []sql.Row{{int32(2)}, {int32(3)}}, rows)
+		})
+	}
+}

@@ -76,10 +76,10 @@ func ruleBasedIndexPlans(ctx *sql.Context, a *Analyzer, n sql.Node, _ *plan.Scop
 					return -1, false
 				}
 				prefix := 0
-				for _, col := range idx.ColumnExpressionTypes(ctx) {
+				for ordinal, col := range idx.ColumnExpressionTypes(ctx) {
 					equality, rang := false, false
 					for _, leaf := range leaves {
-						if !strings.EqualFold(leaf.normString(), col.Expression) {
+						if !strings.EqualFold(leaf.normString(), col.Expression) || !indexScanLeafEligible(ctx, leaf, idx, ordinal) {
 							continue
 						}
 						switch leaf.Op() {
@@ -101,8 +101,8 @@ func ruleBasedIndexPlans(ctx *sql.Context, a *Analyzer, n sql.Node, _ *plan.Scop
 			}
 			var include sets.FastIntSet
 			for _, leaf := range leaves {
-				for _, col := range idx.ColumnExpressionTypes(ctx) {
-					if strings.EqualFold(leaf.normString(), col.Expression) {
+				for ordinal, col := range idx.ColumnExpressionTypes(ctx) {
+					if strings.EqualFold(leaf.normString(), col.Expression) && indexScanLeafEligible(ctx, leaf, idx, ordinal) {
 						include.Add(int(leaf.Id()))
 					}
 				}

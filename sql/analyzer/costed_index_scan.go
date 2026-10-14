@@ -1603,6 +1603,9 @@ func (c *indexCoster) costIndexScanAnd(ctx *sql.Context, filter *iScanAnd, s sql
 	for _, c := range s.Columns() {
 		if colFilters, ok := filter.leafChildren[c]; ok {
 			for _, f := range colFilters {
+				if !indexScanLeafEligible(ctx, f, idx, ordinals[strings.ToLower(f.name)]) {
+					continue
+				}
 				conj.add(ctx, f)
 			}
 		}
@@ -1662,13 +1665,12 @@ func (c *indexCoster) costIndexScanOr(ctx *sql.Context, filter *iScanOr, s sql.S
 // indexHasContentHashedFieldForFilter returns true if the given index |idx| has a content-hashed field that is used
 // by the given filter |filter|. |ordinals| provides a mapping from filter expression to position in |idx|. Indexes
 // with content-hashed fields can only be used for a subset of filter operations.
-func indexHasContentHashedFieldForFilter(ctx *sql.Context, filter *iScanLeaf, idx sql.Index, ordinals map[string]int) bool {
+func indexHasContentHashedFieldForFilter(ctx *sql.Context, idx sql.Index, i int) bool {
 	// Only unique indexes are currently able to use content-hashed fields
 	if !idx.IsUnique() {
 		return false
 	}
 
-	i := ordinals[filter.name]
 	columnExpressionType := idx.ColumnExpressionTypes(ctx)[i]
 
 	// Only TEXT/BLOB types can currently use content-hashes in indexes
@@ -1683,6 +1685,29 @@ func indexHasContentHashedFieldForFilter(ctx *sql.Context, filter *iScanLeaf, id
 	return prefixLength == 0
 }
 
+// indexScanLeafEligible is shared by costed and rule-based index selection,
+// including the predicates used to build the final lookup. Hash ordering cannot
+// answer ordering comparisons, even if a residual filter is retained.
+func indexScanLeafEligible(ctx *sql.Context, filter *iScanLeaf, idx sql.Index, ordinal int) bool {
+	if filter.op == sql.IndexScanOpSpatialEq {
+		return idx.IsSpatial() && ordinal == 0 && filter.litValue != nil
+	}
+	if filter.op == sql.IndexScanOpFulltextEq {
+		return idx.IsFullText() && idx.ID() == filter.fulltextIndex
+	}
+	if idx.IsSpatial() || idx.IsFullText() || idx.IsVector() {
+		return false
+	}
+	if indexHasContentHashedFieldForFilter(ctx, idx, ordinal) {
+		switch filter.op {
+		case sql.IndexScanOpEq, sql.IndexScanOpNotEq, sql.IndexScanOpNullSafeEq, sql.IndexScanOpIsNull, sql.IndexScanOpIsNotNull:
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // costIndexScanLeaf tries to apply a leaf filter to an index represented
 // by a statistic, returning the updated statistic, whether the filter was
 // applicable, and the maximum prefix key (0 or 1 for a leaf).
@@ -1693,14 +1718,8 @@ func (c *indexCoster) costIndexScanLeaf(ctx *sql.Context, filter *iScanLeaf, s s
 		return nil, nil, false, 0, nil
 	}
 
-	// indexes with content-hashed fields can be used to test equality or compare with NULL,
-	// but can't be used for other comparisons, such as less than or greater than.
-	if indexHasContentHashedFieldForFilter(ctx, filter, idx, ordinals) {
-		switch filter.op {
-		case sql.IndexScanOpEq, sql.IndexScanOpNotEq, sql.IndexScanOpNullSafeEq, sql.IndexScanOpIsNull, sql.IndexScanOpIsNotNull:
-		default:
-			return nil, nil, false, 0, nil
-		}
+	if !indexScanLeafEligible(ctx, filter, idx, ord) {
+		return nil, nil, false, 0, nil
 	}
 
 	switch filter.op {

@@ -730,3 +730,16 @@ which is an independent entry point and must install its own policies.
 `TestCallerPoliciesInProcedureAndTriggerBodies` rejects a precreated procedure's
 function without evaluation and observes zero cost hooks for joined bodies, both
 for CALL and a trigger invoking CALL. All four cases failed before this fix.
+
+### Review follow-up: content-hashed index eligibility
+
+Costed and rule-based index selection share operator eligibility, including the
+predicates included in lookup construction. Unprefixed unique TEXT/BLOB index
+fields can answer equality and NULL operations, but cannot answer ordering ranges.
+The same restriction applies to costed conjunctions. Specialized index operators
+are confined to their matching index class. Ineligible ranges remain residual
+filters or fall back to a scan.
+
+`TestRuleBasedContentHashedIndexRange` models legacy hash ordering, where `b` sorts
+before `a`: the pre-fix `s > 'a'` lookup returned only ID 3. The scan fallback returns
+IDs 2 and 3, including range and conjunction cases.
