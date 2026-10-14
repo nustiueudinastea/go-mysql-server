@@ -475,6 +475,83 @@ compile without changing optimization: all 15 execution cases reach a failing
 cost hook, the batch test calls the forbidden rule, and the memo test enumerates
 alternatives. The API-only diff and both runs remain in the evidence directory.
 
+## G7b — deterministic index choice without cost-based plans
+
+G7b supersedes G7's scan-only analyzer behavior. With
+`ctx.SetDisableCostBasedPlans(true)`, the shared batch substitutes
+`ruleBasedIndexPlans` for `optimizeJoinsId`, including the shortened SELECT,
+UPDATE and DELETE batches. The direct optimizer entry uses the same lowering.
+The costed-index and memo entry guards remain in place.
+
+Files:
+
+- `sql/index_selection.go`, `sql/index_selection_test.go`
+- `sql/analyzer/rule_based_index.go`
+- `sql/analyzer/batch.go`, `sql/analyzer/indexed_joins.go`
+- `sql/analyzer/costed_index_scan.go`
+- `sql/analyzer/index_analyzer.go`
+- `sql/analyzer/apply_indexes_from_outer_scope.go`
+- `sql/analyzer/replace_sort.go`
+- `sql/plan/alter_foreign_key.go`
+- `cost_based_plans_test.go`, `rule_based_index_test.go`
+- `scripts/check_rule_based_plans.sh`, `PATCHES.md`
+
+`sql.ChooseIndex` compares integer equality-prefix lengths and a boolean for a
+range on the next column. Complete primary keys win, then complete unique keys
+(ties by index ID), then longest equality prefix, then a range on the next
+column, then index ID. Names compare lexicographically. With no usable prefix
+or leading range, the access remains a table scan. Spatial, full-text and vector
+indexes cannot implement these ordinary scalar lookups. Partial indexes still
+require their predicate; foreign-key eligibility retains its existing checks.
+
+Static filtered accesses reuse the existing filter decomposition and the
+extracted `buildIndexScan` range/lookup construction, without statistics,
+histograms, functional-dependency costing or cost hooks. Residual and imprecise
+filters remain in the plan. Aliases and column pruning are preserved. ORDER BY
+can reuse the chosen lookup's ordering, but cannot select another index for a
+scan fallback. SQL expression arithmetic is unaffected.
+
+Join lowering retains the existing join tree, with no join enumeration or
+hash/merge selection. Eligible inner, left and semi joins use the same selector
+on equality lookup keys, including right-side constant equality filters, and
+reuse `LookupBuilder`. Other joins remain nested loops where a lookup would
+lose preserved rows or null candidates. Existing semantic lowering, including
+RIGHT JOIN normalization, is unchanged. Correlated-subquery lookups use the same
+selector and keep additional equality predicates as residual filters. FK checks
+use the selector in `FindFKIndexWithPrefix`; DML row selection uses the same
+filtered-access lowering as SELECT. Embeddings still implement physical indexes
+and their own storage-level mutation operations.
+
+With the flag false, all original selection branches and range construction
+remain unchanged. No default plan fixtures were edited.
+
+Validation:
+
+- All 20 index-choice cases, plus a correlated unique-key lookup, select the same
+  index and plan across ten runs. Nine selector cases rotate/reverse index lists
+  across ten runs, including composite PKs, unique ties, gaps and range ties.
+- Instrumented 100,000-row tables count binary-search probes, key checks and
+  iterator reads. PK/unique UPDATE and DELETE each examine 19 rows. Child insert
+  examines 19 parent rows; a rejected parent delete examines 19 parent and 19
+  child rows. Every statement asserts at most 64 total reads, and checks its
+  mutation or FK violation.
+- All six large-table subtests fail on `896ecf4ab`: the four ordinary DML cases
+  read 100,000 rows and parent delete reads 50,000. Child insert already had an
+  indexed FK check, but selects `A_id` instead of the required `PRIMARY`.
+  Index-choice and corpus regressions also fail on that parent.
+- The fixed-schema corpus contains 50 queries. The reproduction script writes
+  separate arm64 and amd64 plan files, runs both with `gms_pure_go`, and compares
+  them with `cmp`. Native arm64 and amd64/Rosetta outputs are byte-identical.
+- `go test -p 2 -count=1 -tags=gms_pure_go ./ ./sql ./sql/analyzer ./sql/plan`
+  passes. The requested enginetest selection
+  `TestQueryPlans|TestJoinPlanning|TestIndexQueryPlans|TestQueries` passes with
+  unchanged expectations. Gofmt and `git diff --check` pass.
+
+Logs, parent regression evidence and both architecture plan files are retained
+in `.git/patch-evidence/g7b/`. Reproduce the architecture comparison with
+`scripts/check_rule_based_plans.sh /path/to/output-directory` on an arm64 host
+with amd64 execution support. This check does not alter Go cache settings.
+
 ## Validation and reproduction
 
 Every changed Go file was formatted with `gofmt`; `git diff --check` passes.

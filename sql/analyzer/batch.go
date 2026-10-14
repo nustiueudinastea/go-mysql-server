@@ -77,14 +77,18 @@ func (b *Batch) evalOnce(ctx *sql.Context, a *Analyzer, n sql.Node, scope *plan.
 	for _, rule := range b.Rules {
 		// Apply this here as well as at the rule entry point so shortened
 		// SELECT, UPDATE, and DELETE batches obey the same context policy.
-		if !sel(rule.Id) || (ctx.DisableCostBasedPlans() && rule.Id == optimizeJoinsId) {
+		if !sel(rule.Id) {
 			a.Log("Skipping rule %s", rule.Id)
 			continue
 		}
 		var err error
 		a.Log("Evaluating rule %s", rule.Id)
 		a.PushDebugContext(rule.Id.String())
-		next, same, err = rule.Apply(ctx, a, prev, scope, sel, qFlags)
+		apply := rule.Apply
+		if ctx.DisableCostBasedPlans() && rule.Id == optimizeJoinsId {
+			apply = ruleBasedIndexPlans
+		}
+		next, same, err = apply(ctx, a, prev, scope, sel, qFlags)
 		allSame = same && allSame
 		if next != nil && !same {
 			a.LogNode(ctx, next)

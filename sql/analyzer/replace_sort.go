@@ -93,7 +93,9 @@ func replaceIdxSortHelper(ctx *sql.Context, scope *plan.Scope, node sql.Node, so
 		}
 		return newIdxTbl, transform.NewTree, err
 	case *plan.ResolvedTable:
-		if sortNode == nil {
+		// Keep the rule-based scan fallback; ORDER BY must not select another
+		// index after filter lowering has found no usable equality or range.
+		if ctx.DisableCostBasedPlans() || sortNode == nil {
 			return n, transform.SameTree, nil
 		}
 		table := n.UnderlyingTable()

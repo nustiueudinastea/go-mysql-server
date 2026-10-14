@@ -33,7 +33,7 @@ import (
 // for the tables in the query.
 func optimizeJoins(ctx *sql.Context, a *Analyzer, n sql.Node, scope *plan.Scope, sel RuleSelector, qFlags *sql.QueryFlags) (sql.Node, transform.TreeIdentity, error) {
 	if ctx.DisableCostBasedPlans() {
-		return n, transform.SameTree, nil
+		return ruleBasedIndexPlans(ctx, a, n, scope, sel, qFlags)
 	}
 
 	span, ctx := ctx.Span("construct_join_plan")

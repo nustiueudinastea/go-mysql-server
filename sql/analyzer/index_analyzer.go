@@ -129,6 +129,27 @@ func (r *indexAnalyzer) IndexesByTable(ctx *sql.Context, db, table string) []sql
 // MatchingIndex returns the index that best fits the given expressions. See MatchingIndexes for the rules regarding
 // which index is considered the best.
 func (r *indexAnalyzer) MatchingIndex(ctx *sql.Context, table, db string, exprs ...sql.Expression) sql.Index {
+	if ctx.DisableCostBasedPlans() {
+		return sql.ChooseIndex(r.IndexesByTable(ctx, db, table), func(idx sql.Index) (int, bool) {
+			// This API receives columns, not predicates, so it cannot prove a
+			// partial index predicate. Leave such indexes to filter lowering.
+			if partial, ok := idx.(sql.PartialIndex); ok && partial.Predicate() != "" {
+				return -1, false
+			}
+			prefix := 0
+			for _, col := range idx.Expressions() {
+				found := false
+				for _, expr := range exprs {
+					found = found || strings.EqualFold(col, expr.String())
+				}
+				if !found {
+					break
+				}
+				prefix++
+			}
+			return prefix, false
+		})
+	}
 	indexes := r.MatchingIndexes(ctx, table, db, exprs...)
 	if len(indexes) > 0 {
 		return indexes[0]

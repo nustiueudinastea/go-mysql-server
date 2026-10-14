@@ -109,7 +109,7 @@ func TestDisableCostBasedPlans(t *testing.T) {
 			require.NoError(t, err)
 			transform.Inspect(node, func(n sql.Node) bool {
 				if join, ok := n.(*plan.JoinNode); ok {
-					require.False(t, join.Op.IsPhysical())
+					require.True(t, !join.Op.IsPhysical() || join.Op.IsLookup())
 				}
 				return true
 			})

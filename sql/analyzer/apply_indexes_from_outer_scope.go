@@ -192,6 +192,25 @@ func createIndexKeyExpr(ctx *sql.Context, idx sql.Index, joinExprs []*joinColExp
 	for i := range joinExprs {
 		normalizedJoinExprStrs[i] = normalizeExpression(ctx, tableAliases, nil, joinExprs[i].colExpr).String()
 	}
+	if ctx.DisableCostBasedPlans() {
+		var keys []sql.Expression
+		var nulls []bool
+		for _, col := range idxExpressions {
+			found := false
+			for j, expr := range normalizedJoinExprStrs {
+				if strings.EqualFold(col, expr) {
+					keys = append(keys, joinExprs[j].comparand)
+					nulls = append(nulls, joinExprs[j].matchnull)
+					found = true
+					break
+				}
+			}
+			if !found {
+				break
+			}
+		}
+		return keys, nulls, nil
+	}
 	if ok, prefixCount := exprsAreIndexSubset(normalizedJoinExprStrs, idxExpressions); !ok || prefixCount != len(normalizedJoinExprStrs) {
 		return nil, nil, nil
 	}

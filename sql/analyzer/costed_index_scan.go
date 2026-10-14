@@ -362,84 +362,9 @@ func getCostedIndexScan(
 		return nil, nil, nil, fmt.Errorf("tried building indexScan with unknown statistic index: %s", targetId)
 	}
 
-	// separate |include| and |leftover| filters
-	b := newIndexScanRangeBuilder(ctx, idx, c.bestFilters, imprecise, c.idToExpr)
-	if leftover != nil {
-		b.leftover = append(b.leftover, leftover)
-	}
-	ranges, err := b.buildRangeCollection(root)
-	if sql.ErrInvalidValueType.Is(err) {
-		return nil, nil, nil, nil
-	}
-	if err != nil {
+	ret, lookup, retFilters, err := buildIndexScan(ctx, tblNode, idx, root, c.bestFilters, imprecise, c.idToExpr, leftover, filters)
+	if err != nil || ret == nil {
 		return nil, nil, nil, err
-	}
-
-	var emptyLookup bool
-	if len(ranges) == 0 {
-		emptyLookup = true
-	} else if len(ranges) == 1 {
-		emptyLookup, err = ranges[0].IsEmpty(ctx)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		allRange := true
-		for i, r := range ranges[0] {
-			_, uok := r.UpperBound.(sql.AboveAll)
-			_, lok := r.LowerBound.(sql.BelowNull)
-			allRange = allRange && uok && lok
-			if i == 0 && allRange {
-				// no prefix restriction
-				return nil, nil, nil, nil
-			}
-		}
-		if allRange {
-			return nil, nil, nil, nil
-		}
-	}
-
-	if !idx.CanSupport(ctx, ranges.ToRanges()...) {
-		return nil, nil, nil, err
-	}
-
-	if idx.IsSpatial() && len(ranges) > 1 {
-		// spatials don't support disjunct ranges
-		return nil, nil, nil, err
-	}
-
-	// create ranges, lookup, ITA for best indexScan
-	// TODO: use FALSE filters to replace empty tables
-	lookup := sql.NewIndexLookup(idx, ranges, false, emptyLookup, idx.IsSpatial(), false)
-
-	var ret *plan.IndexedTableAccess
-	if idx.IsFullText() {
-		id, _ := c.bestFilters.Next(1)
-		ma := c.idToExpr[indexScanId(id)]
-		matchAgainst, ok := ma.(*expression.MatchAgainst)
-		if !ok {
-			return nil, nil, nil, fmt.Errorf("Full-Text index found in filter with unknown expression: %T", ma)
-		}
-		if matchAgainst.KeyCols.Type == fulltext.KeyType_None {
-			return nil, nil, nil, err
-		}
-		ret = plan.NewStaticIndexedAccessForFullTextTable(ctx, tblNode, lookup, &rowexec.FulltextFilterTable{
-			MatchAgainst: matchAgainst,
-			Table:        tblNode,
-		})
-	} else {
-		ret, err = plan.NewStaticIndexedAccessForTableNode(ctx, tblNode, lookup)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-	}
-
-	var retFilters []sql.Expression
-	if !preciseIndexAccess(idxTbl, lookup.Index) {
-		// cannot drop filters
-		retFilters = filters
-	} else if len(b.leftover) > 0 {
-		// excluded from tree + not included in index scan => filter above scan
-		retFilters = b.leftover
 	}
 
 	var bestStat sql.Statistic
@@ -463,6 +388,97 @@ func getCostedIndexScan(
 	}
 
 	return ret, bestStat, retFilters, nil
+}
+
+// buildIndexScan constructs a lookup from selected filters without consulting statistics.
+// Both cost-based and rule-based selection use this lowering.
+func buildIndexScan(ctx *sql.Context, tblNode sql.TableNode, idx sql.Index, root indexFilter,
+	include, imprecise sets.FastIntSet, idToExpr map[indexScanId]sql.Expression,
+	leftover sql.Expression, filters []sql.Expression,
+) (*plan.IndexedTableAccess, sql.IndexLookup, []sql.Expression, error) {
+	idxTbl := tblNode.UnderlyingTable().(sql.IndexAddressableTable)
+	var err error
+	// separate |include| and |leftover| filters
+	b := newIndexScanRangeBuilder(ctx, idx, include, imprecise, idToExpr)
+	if leftover != nil {
+		b.leftover = append(b.leftover, leftover)
+	}
+	ranges, err := b.buildRangeCollection(root)
+	if sql.ErrInvalidValueType.Is(err) {
+		return nil, sql.IndexLookup{}, nil, nil
+	}
+	if err != nil {
+		return nil, sql.IndexLookup{}, nil, err
+	}
+
+	var emptyLookup bool
+	if len(ranges) == 0 {
+		emptyLookup = true
+	} else if len(ranges) == 1 {
+		emptyLookup, err = ranges[0].IsEmpty(ctx)
+		if err != nil {
+			return nil, sql.IndexLookup{}, nil, err
+		}
+		allRange := true
+		for i, r := range ranges[0] {
+			_, uok := r.UpperBound.(sql.AboveAll)
+			_, lok := r.LowerBound.(sql.BelowNull)
+			allRange = allRange && uok && lok
+			if i == 0 && allRange {
+				// no prefix restriction
+				return nil, sql.IndexLookup{}, nil, nil
+			}
+		}
+		if allRange {
+			return nil, sql.IndexLookup{}, nil, nil
+		}
+	}
+
+	if !idx.CanSupport(ctx, ranges.ToRanges()...) {
+		return nil, sql.IndexLookup{}, nil, err
+	}
+
+	if idx.IsSpatial() && len(ranges) > 1 {
+		// spatials don't support disjunct ranges
+		return nil, sql.IndexLookup{}, nil, err
+	}
+
+	// create ranges, lookup, ITA for best indexScan
+	// TODO: use FALSE filters to replace empty tables
+	lookup := sql.NewIndexLookup(idx, ranges, false, emptyLookup, idx.IsSpatial(), false)
+
+	var ret *plan.IndexedTableAccess
+	if idx.IsFullText() {
+		id, _ := include.Next(1)
+		ma := idToExpr[indexScanId(id)]
+		matchAgainst, ok := ma.(*expression.MatchAgainst)
+		if !ok {
+			return nil, sql.IndexLookup{}, nil, fmt.Errorf("Full-Text index found in filter with unknown expression: %T", ma)
+		}
+		if matchAgainst.KeyCols.Type == fulltext.KeyType_None {
+			return nil, sql.IndexLookup{}, nil, err
+		}
+		ret = plan.NewStaticIndexedAccessForFullTextTable(ctx, tblNode, lookup, &rowexec.FulltextFilterTable{
+			MatchAgainst: matchAgainst,
+			Table:        tblNode,
+		})
+	} else {
+		ret, err = plan.NewStaticIndexedAccessForTableNode(ctx, tblNode, lookup)
+		if err != nil {
+			return nil, sql.IndexLookup{}, nil, err
+		}
+	}
+
+	var retFilters []sql.Expression
+	if !preciseIndexAccess(idxTbl, lookup.Index) {
+		// cannot drop filters
+		retFilters = filters
+	} else if len(b.leftover) > 0 {
+		// excluded from tree + not included in index scan => filter above scan
+		retFilters = b.leftover
+	}
+
+	return ret, lookup, retFilters, nil
 }
 
 func addIndexScans(ctx *sql.Context, m *memo.Memo, catalog *Catalog) error {

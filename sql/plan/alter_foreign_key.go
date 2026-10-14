@@ -627,6 +627,15 @@ func FindFKIndexWithPrefix(ctx *sql.Context, tbl sql.IndexAddressableTable, pref
 		return nil, false, nil
 	}
 
+	if ctx.DisableCostBasedPlans() {
+		candidates := make([]sql.Index, len(indexesWithLen))
+		for i, idx := range indexesWithLen {
+			candidates[i] = idx.Index
+		}
+		idx := sql.ChooseIndex(candidates, func(sql.Index) (int, bool) { return colLen, false })
+		return idx, idx != nil, nil
+	}
+
 	sort.Slice(indexesWithLen, func(i, j int) bool {
 		idxI := indexesWithLen[i]
 		idxJ := indexesWithLen[j]
