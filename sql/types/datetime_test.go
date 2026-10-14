@@ -580,3 +580,18 @@ func TestDatetimeOverflowUnderflow(t *testing.T) {
 		})
 	}
 }
+
+func TestTimeToDatetimeQueryDate(t *testing.T) {
+	ctx := sql.NewEmptyContext()
+	ctx.SetQueryTime(time.Date(2001, 2, 3, 23, 59, 59, 0, time.UTC))
+	for _, input := range []string{"12:34:56", "-01:00:00", "25:00:00"} {
+		t.Run(input, func(t *testing.T) {
+			span, _, err := Time.Convert(ctx, input)
+			require.NoError(t, err)
+			actual, inRange, err := Datetime.Convert(ctx, span)
+			require.NoError(t, err)
+			require.Equal(t, sql.InRange, inRange)
+			require.Equal(t, time.Date(2001, 2, 3, 0, 0, 0, 0, time.UTC).Add(span.(Timespan).AsTimeDuration()), actual)
+		})
+	}
+}

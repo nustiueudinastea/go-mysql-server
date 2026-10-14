@@ -251,3 +251,27 @@ func TestTrackProcess(t *testing.T) {
 	require.Equal(sql.ProcessCommandSleep, processes[0].Command)
 	require.Error(ctx.Err())
 }
+
+func TestInsertTimeToDatetimeQueryDate(t *testing.T) {
+	db := memory.NewDatabase("db")
+	provider := memory.NewDBProvider(db)
+	engine := NewDefault(provider)
+	defer engine.Close()
+	ctx := sql.NewContext(context.Background(), sql.WithSession(memory.NewSession(sql.NewBaseSession(), provider)))
+	ctx.SetCurrentDatabase("db")
+	ctx.SetQueryTime(time.Date(2001, 2, 3, 23, 59, 59, 0, time.UTC))
+	for _, query := range []string{
+		"CREATE TABLE times (dt DATETIME)",
+		"INSERT INTO times VALUES (CAST('12:34:56' AS TIME))",
+	} {
+		_, iter, _, err := engine.Query(ctx, query)
+		require.NoError(t, err)
+		_, err = sql.RowIterToRows(ctx, iter)
+		require.NoError(t, err)
+	}
+	_, iter, _, err := engine.Query(ctx, "SELECT dt FROM times")
+	require.NoError(t, err)
+	rows, err := sql.RowIterToRows(ctx, iter)
+	require.NoError(t, err)
+	require.Equal(t, []sql.Row{{time.Date(2001, 2, 3, 12, 34, 56, 0, time.UTC)}}, rows)
+}
