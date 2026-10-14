@@ -398,3 +398,50 @@ func TestCreateTableRejectsSleepBeforeConstruction(t *testing.T) {
 	_, err := engine.AnalyzeQuery(ctx, "CREATE TABLE d (v DATETIME DEFAULT (`utc_timestamp`(SLEEP(0))))")
 	require.ErrorIs(t, err, rejected)
 }
+
+func TestCallerPoliciesInDirectTriggerBody(t *testing.T) {
+	for _, reject := range []bool{false, true} {
+		t.Run(fmt.Sprint(reject), func(t *testing.T) {
+			engine, ctx := validatorEngine(t)
+			calls := 0
+			engine.Analyzer.Catalog.RegisterFunction(ctx, sql.NewFunction0("validator_counter", func(*sql.Context) sql.Expression {
+				return &validatorCounter{expression.NewLiteral(int64(1), types.Int64), &calls}
+			}))
+			query := func(q string) error {
+				_, iter, _, err := engine.Query(ctx, q)
+				if err == nil {
+					_, err = sql.RowIterToRows(ctx, iter)
+				}
+				return err
+			}
+			body := "SET NEW.v = (SELECT u.v FROM u JOIN (SELECT 1 AS id) x ON u.id = x.id)"
+			if reject {
+				body = "SET NEW.v = validator_counter()"
+			}
+			require.NoError(t, query("CREATE TRIGGER tr BEFORE UPDATE ON t FOR EACH ROW "+body))
+			calls = 0
+			coster := &countingPlanCoster{Coster: engine.Analyzer.Coster}
+			stats := &countingPlanStats{StatsProvider: engine.Analyzer.Catalog.StatsProvider}
+			engine.Analyzer.Coster, engine.Analyzer.Catalog.StatsProvider = coster, stats
+			ctx.SetDisableCostBasedPlans(true)
+			rejected := errors.New("trigger function forbidden")
+			ctx.SetValidators(nil, func(_ *sql.Context, e sql.Expression) error {
+				if reject {
+					if _, ok := e.(*validatorCounter); ok {
+						return rejected
+					}
+				}
+				return nil
+			})
+			err := query("UPDATE t SET v = 30 WHERE id = 1")
+			if reject {
+				require.ErrorIs(t, err, rejected)
+				require.Zero(t, calls)
+			} else {
+				require.NoError(t, err)
+			}
+			require.Zero(t, coster.calls)
+			require.Zero(t, stats.calls)
+		})
+	}
+}
