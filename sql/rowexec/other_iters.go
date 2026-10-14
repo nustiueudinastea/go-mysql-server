@@ -167,6 +167,7 @@ type hashLookupGeneratingIter struct {
 	n         *plan.HashLookup
 	childIter sql.RowIter
 	lookup    *map[interface{}][]sql.Row
+	nullRows  []sql.Row
 }
 
 func newHashLookupGeneratingIter(n *plan.HashLookup, chlidIter sql.RowIter) *hashLookupGeneratingIter {
@@ -184,19 +185,22 @@ func (h *hashLookupGeneratingIter) Next(ctx *sql.Context) (sql.Row, error) {
 	if err == io.EOF {
 		// We wait until we finish the child iter before caching the Lookup map.
 		// This is because some plans may not fully exhaust the iterator.
+		h.n.NullKeyRows = h.nullRows
 		h.n.Lookup = h.lookup
 		return nil, io.EOF
 	}
 	if err != nil {
 		return nil, err
 	}
-	// TODO: Maybe do not put nil stuff in here.
 	// TODO: Handle keys that are out of range?
-	key, _, err := h.n.GetHashKey(ctx, h.n.RightEntryKey, childRow)
+	key, _, hasNull, err := h.n.GetHashKeyWithNulls(ctx, h.n.RightEntryKey, childRow)
 	if err != nil {
 		return nil, err
 	}
 	(*(h.lookup))[key] = append((*(h.lookup))[key], childRow)
+	if hasNull && h.n.JoinType.IsExcludeNulls() {
+		h.nullRows = append(h.nullRows, childRow)
+	}
 	return childRow, nil
 }
 

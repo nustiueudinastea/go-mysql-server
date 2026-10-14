@@ -279,3 +279,160 @@ type mockReporter struct {
 
 func (m mockReporter) UsedMemory() uint64 { return m.val }
 func (m mockReporter) MaxMemory() uint64  { return m.max }
+
+func TestAntiHashNotInCachedMiss(t *testing.T) {
+	// Execute WHERE (a,b) NOT IN (SELECT a,b FROM rhs) with an explicit
+	// AntiHash plan. The first LHS row exhausts the RHS and primes its cache.
+	for _, test := range []struct {
+		name                  string
+		left, right, expected []sql.Row
+	}{
+		{
+			name:     "NULL in RHS",
+			left:     []sql.Row{{int64(3), int64(3)}, {int64(1), int64(3)}},
+			right:    []sql.Row{{int64(1), nil}, {int64(2), int64(2)}},
+			expected: []sql.Row{{int64(3), int64(3)}},
+		},
+		{
+			name:     "NULL in LHS",
+			left:     []sql.Row{{int64(3), int64(3)}, {nil, int64(2)}},
+			right:    []sql.Row{{int64(1), int64(1)}, {int64(2), int64(2)}},
+			expected: []sql.Row{{int64(3), int64(3)}},
+		},
+		{
+			name:     "unrelated NULL",
+			left:     []sql.Row{{int64(3), int64(3)}, {int64(1), int64(3)}},
+			right:    []sql.Row{{int64(1), int64(2)}, {int64(2), nil}},
+			expected: []sql.Row{{int64(3), int64(3)}, {int64(1), int64(3)}},
+		},
+		{
+			name:     "cached hit",
+			left:     []sql.Row{{int64(3), int64(3)}, {int64(2), int64(2)}},
+			right:    []sql.Row{{int64(1), nil}, {int64(2), int64(2)}},
+			expected: []sql.Row{{int64(3), int64(3)}},
+		},
+		{
+			name:     "empty RHS",
+			left:     []sql.Row{{int64(3), int64(3)}, {nil, int64(2)}},
+			expected: []sql.Row{{int64(3), int64(3)}, {nil, int64(2)}},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			for iteration := 0; iteration < 100; iteration++ {
+				ctx := sql.NewEmptyContext()
+				values := func(rows []sql.Row) *plan.Values {
+					tuples := make([][]sql.Expression, len(rows))
+					for i, row := range rows {
+						tuples[i] = []sql.Expression{
+							expression.NewLiteral(row[0], types.Int64),
+							expression.NewLiteral(row[1], types.Int64),
+						}
+					}
+					return plan.NewValues(tuples)
+				}
+				key := func(offset int) sql.Expression {
+					return expression.NewTuple(
+						expression.NewGetField(offset, types.Int64, "a", true),
+						expression.NewGetField(offset+1, types.Int64, "b", true),
+					)
+				}
+				cached := plan.NewCachedResults(values(test.right))
+				lookup := plan.NewHashLookup(ctx, cached, key(0), key(0), plan.JoinTypeAntiHash)
+				join := plan.NewJoin(ctx, values(test.left), lookup, plan.JoinTypeAntiHash,
+					expression.NewEquals(key(0), key(2)))
+				iter, err := DefaultBuilder.Build(ctx, join, nil)
+				require.NoError(t, err)
+				rows, err := sql.RowIterToRows(ctx, iter)
+				require.NoError(t, err)
+				require.NotNil(t, lookup.Lookup, "first probe must populate the hash cache")
+				require.True(t, cached.IsFinalized())
+				require.Equal(t, test.expected, rows, "iteration %d", iteration)
+			}
+		})
+	}
+}
+
+func TestAntiHashNotInCachedMissReplay(t *testing.T) {
+	const rightSize, probes = 10000, 128
+	for _, tuple := range []bool{false, true} {
+		for _, withNulls := range []bool{false, true} {
+			t.Run(fmt.Sprintf("tuple=%t/NULLs=%t", tuple, withNulls), func(t *testing.T) {
+				ctx := sql.NewEmptyContext()
+				var right, nullRows []sql.Row
+				var tuples [][]sql.Expression
+				for i := 0; i < rightSize; i++ {
+					row := sql.Row{int64(i), int64(i)}
+					if i == 43 {
+						row = sql.Row{int64(42), int64(42)} // A hit must retain duplicates.
+					}
+					if withNulls && (i == 0 || i == 2500 || i == 5000 || i == rightSize-1) {
+						if tuple && i%2 == 1 {
+							row[1] = nil
+						} else {
+							row[0] = nil
+						}
+						nullRows = append(nullRows, row)
+					}
+					right = append(right, row)
+					tuples = append(tuples, []sql.Expression{
+						expression.NewLiteral(row[0], types.Int64),
+						expression.NewLiteral(row[1], types.Int64),
+					})
+				}
+				var key sql.Expression = expression.NewGetField(0, types.Int64, "a", true)
+				if tuple {
+					key = expression.NewTuple(key, expression.NewGetField(1, types.Int64, "b", true))
+				}
+				cached := plan.NewCachedResults(plan.NewValues(tuples))
+				lookup := plan.NewHashLookup(ctx, cached, key, key, plan.JoinTypeAntiHash)
+				// Drain each lookup iterator to count all candidates made available
+				// per LHS probe, independently of the join's early rejection on NULL.
+				probe := func(t *testing.T, left sql.Row) []sql.Row {
+					t.Helper()
+					iter, err := DefaultBuilder.Build(ctx, lookup, left)
+					require.NoError(t, err)
+					rows, err := sql.RowIterToRows(ctx, iter)
+					require.NoError(t, err)
+					return rows
+				}
+				// An abandoned first probe must not publish a partial NULL bucket.
+				iter, err := DefaultBuilder.Build(ctx, lookup, sql.Row{int64(rightSize), int64(rightSize)})
+				require.NoError(t, err)
+				_, err = iter.Next(ctx)
+				require.NoError(t, err)
+				require.NoError(t, iter.Close(ctx))
+				require.Nil(t, lookup.Lookup)
+				require.Equal(t, right, probe(t, sql.Row{int64(rightSize), int64(rightSize)}))
+				require.NotNil(t, lookup.Lookup)
+				require.True(t, cached.IsFinalized())
+
+				t.Run("misses", func(t *testing.T) {
+					replayed := 0
+					for i := 0; i < probes; i++ {
+						rows := probe(t, sql.Row{int64(rightSize + i), int64(rightSize + i)})
+						replayed += len(rows)
+						require.LessOrEqual(t, len(rows), len(nullRows), "probe %d replayed too many RHS rows", i)
+						require.Len(t, rows, len(nullRows), "probe %d omitted NULL-key rows", i)
+						require.Equal(t, nullRows, rows, "probe %d must replay every NULL-key row in order", i)
+					}
+					t.Logf("%d cached misses replayed %d rows total; %d per probe (RHS=%d)", probes, replayed, len(nullRows), rightSize)
+				})
+				t.Run("hit", func(t *testing.T) {
+					require.Equal(t, []sql.Row{right[42], right[43]}, probe(t, sql.Row{int64(42), int64(42)}))
+				})
+				t.Run("NULL probe", func(t *testing.T) {
+					left := []sql.Row{{nil, int64(rightSize)}, {nil, int64(0)}}
+					if tuple {
+						left = append(left, sql.Row{int64(rightSize), nil})
+					}
+					for _, row := range left {
+						rows := probe(t, row)
+						require.Len(t, rows, rightSize)
+						require.Equal(t, right, rows)
+						t.Logf("NULL probe %v replayed %d rows", row, len(rows))
+					}
+				})
+			})
+		}
+	}
+}

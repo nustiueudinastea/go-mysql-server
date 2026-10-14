@@ -239,21 +239,19 @@ func (b *BaseBuilder) buildHashLookup(ctx *sql.Context, n *plan.HashLookup, row 
 		return newHashLookupGeneratingIter(n, childIter), nil
 	}
 	// TODO: handle out of range keys?
-	key, _, err := n.GetHashKey(ctx, n.LeftProbeKey, row)
+	key, _, hasNull, err := n.GetHashKeyWithNulls(ctx, n.LeftProbeKey, row)
 	if err != nil {
 		return nil, err
 	}
 	if n.JoinType.IsExcludeNulls() {
-		// Some joins care if any of their filter comparisons have a NULL result.
-		// For these joins, we need to distinguish between an empty and non-empty secondary table.
-		// Thus, if there are any rows in the lookup, we must return at least one.
-		if len((*n.Lookup)[key]) > 0 {
-			return sql.RowsToRowIter((*n.Lookup)[key]...), nil
+		if hasNull {
+			// A NULL probe needs per-row comparisons, including against non-NULL keys.
+			return b.buildNodeExec(ctx, n.Child, row)
 		}
-		for k := range *n.Lookup {
-			if len((*n.Lookup)[k]) > 0 {
-				return sql.RowsToRowIter((*n.Lookup)[k]...), nil
-			}
+		if len((*n.Lookup)[key]) == 0 {
+			// Different non-NULL keys compare false. Only NULL-key rows can still
+			// produce UNKNOWN, so a miss need not replay the entire child.
+			return sql.RowsToRowIter(n.NullKeyRows...), nil
 		}
 	}
 	return sql.RowsToRowIter((*n.Lookup)[key]...), nil

@@ -61,6 +61,10 @@ type HashLookup struct {
 	Lookup        *map[interface{}][]sql.Row
 	leftKeySch    sql.Schema
 	JoinType      JoinType
+
+	// NullKeyRows contains the RHS rows with a NULL key component, in input order.
+	// It is published with Lookup only after the child iterator is exhausted.
+	NullKeyRows []sql.Row
 }
 
 var _ sql.Node = (*HashLookup)(nil)
@@ -139,9 +143,16 @@ func (n *HashLookup) CollationCoercibility(ctx *sql.Context) (collation sql.Coll
 // through string serialization and a hash for now. It is OK to hash lossy here
 // as the join condition is still evaluated after the matching rows are returned.
 func (n *HashLookup) GetHashKey(ctx *sql.Context, e sql.Expression, row sql.Row) (any, sql.ConvertInRange, error) {
+	key, inRange, _, err := n.GetHashKeyWithNulls(ctx, e, row)
+	return key, inRange, err
+}
+
+// GetHashKeyWithNulls also reports whether the converted key contains a NULL
+// component, before hashing erases that information. The expression is evaluated once.
+func (n *HashLookup) GetHashKeyWithNulls(ctx *sql.Context, e sql.Expression, row sql.Row) (any, sql.ConvertInRange, bool, error) {
 	key, err := e.Eval(ctx, row)
 	if err != nil {
-		return nil, sql.InRange, err
+		return nil, sql.InRange, false, err
 	}
 	if et, ok := e.Type(ctx).(sql.ExtendedType); ok {
 		key, _, err = n.CompareType.(sql.ExtendedType).ConvertToType(ctx, et, key, 'i')
@@ -150,23 +161,40 @@ func (n *HashLookup) GetHashKey(ctx *sql.Context, e sql.Expression, row sql.Row)
 	}
 	if types.ErrValueNotNil.Is(err) {
 		// The LHS expression was NullType. This is allowed.
-		return nil, sql.InRange, nil
+		return nil, sql.InRange, true, nil
 	}
 	if err != nil && !sql.ErrTruncatedIncorrect.Is(err) {
 		// Truncated warning is already thrown elsewhere.
-		return nil, sql.InRange, err
+		return nil, sql.InRange, false, err
 	}
+	hasNull := hashKeyContainsNull(key)
 	if s, ok := key.([]any); ok {
 		h, err := hash.HashOf(ctx, n.leftKeySch, s)
-		return h, sql.InRange, err
+		return h, sql.InRange, hasNull, err
 	}
 	// byte slices are not hashable
 	if k, ok := key.([]byte); ok {
-		return string(k), sql.InRange, nil
+		return string(k), sql.InRange, hasNull, nil
 	}
-	return hash.HashOfSimple(ctx, key, n.CompareType)
+	h, inRange, err := hash.HashOfSimple(ctx, key, n.CompareType)
+	return h, inRange, hasNull, err
+}
+
+func hashKeyContainsNull(key any) bool {
+	if key == nil {
+		return true
+	}
+	if tuple, ok := key.([]any); ok {
+		for _, component := range tuple {
+			if hashKeyContainsNull(component) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (n *HashLookup) Dispose(ctx *sql.Context) {
 	n.Lookup = nil
+	n.NullKeyRows = nil
 }
