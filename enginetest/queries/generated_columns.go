@@ -1293,11 +1293,11 @@ var GeneratedColumnTests = []ScriptTest{
 			},
 			{
 				Query:    "select sum(b) from t1 where b > 2",
-				Expected: []sql.Row{{7.0}},
+				Expected: []sql.Row{{"7"}},
 			},
 			{
 				Query:    "select sum(d) from t2 where d >= 1",
-				Expected: []sql.Row{{3.0}},
+				Expected: []sql.Row{{"3"}},
 			},
 			{
 				Query:    "select a, (select b from t1 t1a where t1a.a = t1.a+1) from t1 order by a",

@@ -285,13 +285,13 @@ var CreateTableQueries = []WriteQueryTest{
 		WriteQuery:          `CREATE TABLE t1 as select s, sum(i) from mytable group by s`,
 		ExpectedWriteResult: []sql.Row{{types.NewOkResult(3)}},
 		SelectQuery:         `select * from t1 order by s`, // other column is named `SUM(mytable.i)`
-		ExpectedSelect:      []sql.Row{{"first row", float64(1)}, {"second row", float64(2)}, {"third row", float64(3)}},
+		ExpectedSelect:      []sql.Row{{"first row", "1"}, {"second row", "2"}, {"third row", "3"}},
 	},
 	{
 		WriteQuery:          `CREATE TABLE t1 as select s, sum(i) from mytable group by s having sum(i) > 2`,
 		ExpectedWriteResult: []sql.Row{{types.NewOkResult(1)}},
 		SelectQuery:         "select * from t1",
-		ExpectedSelect:      []sql.Row{{"third row", float64(3)}},
+		ExpectedSelect:      []sql.Row{{"third row", "3"}},
 	},
 	{
 		WriteQuery:          `CREATE TABLE t1 as select s, i from mytable order by s limit 1`,
@@ -1294,7 +1294,7 @@ var CreateTableScriptTests = []ScriptTest{
 				Query: "show create table t11;",
 				Expected: []sql.Row{
 					{"t11", "CREATE TABLE `t11` (\n" +
-						"  `jj` double NOT NULL\n" +
+						"  `jj` decimal(32,0) NOT NULL\n" +
 						") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin"},
 				},
 			},
@@ -1342,13 +1342,13 @@ var CreateTableScriptTests = []ScriptTest{
 		Assertions: []ScriptTestAssertion{
 			{
 				Query: "show create table t2;",
-				// TODO: MySQL column types are different https://github.com/dolthub/dolt/issues/9754
+				// TODO: Aggregate nullability differs from MySQL https://github.com/dolthub/dolt/issues/9754
 				Expected: []sql.Row{
 					{"t2", "CREATE TABLE `t2` (\n" +
-						"  `sum(i)` double NOT NULL,\n" +
+						"  `sum(i)` decimal(32,0) NOT NULL,\n" +
 						"  `max(i)` int NOT NULL,\n" +
 						"  `min(i)` int NOT NULL,\n" +
-						"  `avg(i)` double\n" +
+						"  `avg(i)` decimal(14,4)\n" +
 						") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin"},
 				},
 			},

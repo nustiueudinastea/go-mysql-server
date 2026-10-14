@@ -2712,16 +2712,16 @@ var NamedWindowsScriptTests = []ScriptTest{
 		Assertions: []ScriptTestAssertion{
 			{
 				Query:    `SELECT sum(y) over (w1) FROM a WINDOW w1 as (order by z) order by x`,
-				Expected: []sql.Row{{float64(7)}, {float64(7)}, {float64(7)}, {float64(7)}, {float64(7)}, {float64(7)}},
+				Expected: []sql.Row{{"7"}, {"7"}, {"7"}, {"7"}, {"7"}, {"7"}},
 			},
 			{
 				// window names should not be case-sensitive
 				Query:    `SELECT sum(y) over (w1) FROM a WINDOW W1 as (order by z) order by x`,
-				Expected: []sql.Row{{float64(7)}, {float64(7)}, {float64(7)}, {float64(7)}, {float64(7)}, {float64(7)}},
+				Expected: []sql.Row{{"7"}, {"7"}, {"7"}, {"7"}, {"7"}, {"7"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (w1) FROM a WINDOW w1 as (partition by z) order by x`,
-				Expected: []sql.Row{{float64(7)}, {float64(7)}, {float64(7)}, {float64(7)}, {float64(7)}, {float64(7)}},
+				Expected: []sql.Row{{"7"}, {"7"}, {"7"}, {"7"}, {"7"}, {"7"}},
 			},
 			{
 				// A named window with an ORDER BY but no explicit frame must default to a running (cumulative)
@@ -2729,19 +2729,19 @@ var NamedWindowsScriptTests = []ScriptTest{
 				// default-frame inference has to run against the referenced window's merged ORDER BY, not the
 				// (possibly empty) ORDER BY on the OVER w reference itself.
 				Query:    `SELECT sum(y) over w1 FROM a WINDOW w1 as (partition by z order by x) order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(1)}, {float64(3)}, {float64(3)}, {float64(4)}, {float64(7)}},
+				Expected: []sql.Row{{"0"}, {"1"}, {"3"}, {"3"}, {"4"}, {"7"}},
 			},
 			{
 				Query:    `SELECT sum(y) over w FROM a WINDOW w as (partition by z order by x rows unbounded preceding) order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(1)}, {float64(3)}, {float64(3)}, {float64(4)}, {float64(7)}},
+				Expected: []sql.Row{{"0"}, {"1"}, {"3"}, {"3"}, {"4"}, {"7"}},
 			},
 			{
 				Query:    `SELECT sum(y) over w FROM a WINDOW w as (partition by z order by x rows current row) order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(1)}, {float64(2)}, {float64(0)}, {float64(1)}, {float64(3)}},
+				Expected: []sql.Row{{"0"}, {"1"}, {"2"}, {"0"}, {"1"}, {"3"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (w) FROM a WINDOW w as (partition by z order by x rows 2 preceding) order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(1)}, {float64(3)}, {float64(3)}, {float64(3)}, {float64(4)}},
+				Expected: []sql.Row{{"0"}, {"1"}, {"3"}, {"3"}, {"3"}, {"4"}},
 			},
 			{
 				Query:    `SELECT row_number() over (w3) FROM a WINDOW w3 as (w2), w2 as (w1), w1 as (partition by z order by x) order by x`,
@@ -2793,11 +2793,11 @@ var NamedWindowsScriptTests = []ScriptTest{
 		Assertions: []ScriptTestAssertion{
 			{
 				Query:    `SELECT sum(amt) over w2 FROM b WINDOW w1 as (partition by grp), w2 as (w1 order by id) order by id`,
-				Expected: []sql.Row{{float64(10)}, {float64(30)}, {float64(60)}, {float64(5)}, {float64(20)}},
+				Expected: []sql.Row{{"10"}, {"30"}, {"60"}, {"5"}, {"20"}},
 			},
 			{
 				Query:    `SELECT sum(amt) over (w1 order by id) FROM b WINDOW w1 as (partition by grp) order by id`,
-				Expected: []sql.Row{{float64(10)}, {float64(30)}, {float64(60)}, {float64(5)}, {float64(20)}},
+				Expected: []sql.Row{{"10"}, {"30"}, {"60"}, {"5"}, {"20"}},
 			},
 		},
 	},
@@ -2821,10 +2821,10 @@ var NamedWindowsScriptTests = []ScriptTest{
 FROM t
 ORDER BY id`,
 		Expected: []sql.Row{
-			{int32(1), float64(30), float64(10)},
-			{int32(2), float64(20), float64(20)},
-			{int32(3), float64(30), float64(40)},
-			{int32(4), float64(70), float64(60)},
+			{int32(1), "30", "10"},
+			{int32(2), "20", "20"},
+			{int32(3), "30", "40"},
+			{int32(4), "70", "60"},
 		},
 	},
 	{
@@ -2838,15 +2838,15 @@ ORDER BY id`,
 		Assertions: []ScriptTestAssertion{
 			{
 				Query:    "select id, sum(any_value(id)) over (order by id) from members order by 1 limit 2",
-				Expected: []sql.Row{{3, float64(3)}, {4, float64(7)}},
+				Expected: []sql.Row{{3, "3"}, {4, "7"}},
 			},
 			{
 				Query:    "select id, any_value(sum(id) over (order by id)) from members order by 1 limit 2",
-				Expected: []sql.Row{{3, float64(3)}, {4, float64(7)}},
+				Expected: []sql.Row{{3, "3"}, {4, "7"}},
 			},
 			{
 				Query:    "select any_value(sum(id) over ()) from members order by 1 limit 2",
-				Expected: []sql.Row{{float64(33)}, {float64(33)}},
+				Expected: []sql.Row{{"33"}, {"33"}},
 			},
 		},
 	},

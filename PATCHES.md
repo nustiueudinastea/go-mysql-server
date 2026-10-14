@@ -3,7 +3,8 @@
 Upstream base: `d5acf30e85194e579501ca7712e6c2c6dc400e74`. Branch: `swarmion`.
 Original fork patch: `c336135d2287120b574b22bb7c4332dc0312c507` — Fill the date of a TIME
 converted to DATETIME from the query time (`sql/types/datetime.go`).
-Each behavior patch has its own commit; the refined G5 commit also carries this inventory.
+Each behavior patch has its own commit. A shared validation commit carries
+the G6/G7 inventory and remaining aggregate query-fixture updates.
 
 ## G1 — Query-date conversion regression coverage
 
@@ -293,6 +294,187 @@ there are no NULL keys). Copying the replay test onto replaced G5 `a62e5a236`
 also fails: a non-NULL miss replays 10,000 rows instead of at most four.
 The refined code passes both tests.
 
+## G6 — Exact SUM and AVG
+
+Commit: `1ef05ba76b19781daba3dc795fb8a6feceb64d73`, appended to pushed G5
+`e7eb0866b` without rewriting it.
+
+Files (behavior commit and shared validation follow-up):
+
+- `enginetest/enginetests.go`
+- `enginetest/join_op_tests.go`
+- `enginetest/memory_engine_test.go`
+- `enginetest/queries/aggregation_queries.go`
+- `enginetest/queries/charset_collation_engine.go`
+- `enginetest/queries/create_table_queries.go`
+- `enginetest/queries/derived_table_outer_scope_visibility_queries.go`
+- `enginetest/queries/generated_columns.go`
+- `enginetest/queries/join_queries.go`
+- `enginetest/queries/name_resolution_queries.go`
+- `enginetest/queries/priv_auth_queries.go`
+- `enginetest/queries/procedure_queries.go`
+- `enginetest/queries/queries.go`
+- `enginetest/queries/set_operations_queries.go`
+- `enginetest/queries/time_queries.go`
+- `enginetest/queries/window_functions_queries.go`
+- `numeric_aggregates_test.go`
+- `optgen/cmd/source/unary_aggs.yaml`
+- `sql/expression/function/aggregation/avg_test.go`
+- `sql/expression/function/aggregation/numeric_aggs.go`
+- `sql/expression/function/aggregation/numeric_aggs_test.go`
+- `sql/expression/function/aggregation/unary_agg_buffers.go`
+- `sql/expression/function/aggregation/unary_aggs.og.go`
+- `sql/expression/function/aggregation/window_functions.go`
+- `sql/expression/function/aggregation/window_iter_test.go`
+- `sql/expression/function/aggregation/window_partition_test.go`
+- `PATCHES.md` (shared inventory)
+
+For an exact argument with precision p and scale s, SUM returns
+DECIMAL(min(p+22,65),s). AVG returns DECIMAL(min(p+d,65),min(s+d,30)), with
+session `div_precision_increment` d (default 4). Integer columns have scale
+zero and precision 3/5/7/10/19 for signed TINYINT/SMALLINT/MEDIUMINT/INT/BIGINT,
+and 3/5/8/10/20 for unsigned versions; integer literals use their digit count
+(Boolean literals use one digit). Floating-point and string arguments return
+DOUBLE. These rules follow
+[MySQL's implementation](https://github.com/mysql/mysql-server/blob/8.4/sql/item_sum.cc)
+and [precision math examples](https://dev.mysql.com/doc/refman/8.4/en/precision-math-examples.html).
+
+Grouped SUM/AVG and DISTINCT variants accumulate exact inputs directly in
+apd decimals, without float intermediates. Window SUM/AVG use independent
+exact decimal prefixes and exact subtraction for moving frames. AVG divides
+at the result scale, and final results are range checked. NULL-only and empty
+inputs/frames still return NULL. Approximate arguments retain DOUBLE.
+
+Previous MySQL discrepancies corrected:
+
+- Both functions advertised DOUBLE for all arguments. Integer buffers also
+  converted through DOUBLE, losing precision above 2^53. Grouped DECIMAL
+  buffers sometimes emitted decimal despite DOUBLE metadata; windows always
+  emitted DOUBLE and could lose DECIMAL precision.
+- Exact AVG now uses the declared argument scale plus d, capped at 30, rather
+  than unrestricted float digits or runtime decimal exponent plus a fixed 4.
+  It now honors a nondefault division increment.
+- Exact DISTINCT aggregates inherit these rules. MySQL disallows DISTINCT
+  SUM/AVG windows; the existing SQL error tests require that same rejection.
+- Exact accumulator conversion/add errors propagate instead of silent
+  fallback to zero or discarded decimal-add errors; result bounds now apply.
+
+Retained differences and scope:
+
+- SUM's existing `IsNullable` metadata remains false, although empty/NULL-only
+  sums return NULL. MySQL marks SUM nullable. Keeping it preserves all existing
+  query-plan expectations.
+- Aggregate precision follows GMS argument metadata. Many integer expressions
+  have fixed-width metadata instead of MySQL's expression-specific precision.
+  Argument evaluation itself can already have lost precision, for example
+  inside GMS division's existing floating-point path; this patch cannot recover it.
+- Internal decimal sums are arbitrary precision, unlike MySQL's fixed-size
+  buffers. Final output enforces precision/scale, but extreme intermediate
+  overflow followed by cancellation can have different error timing. Errors
+  retain GMS error types.
+- Existing conversions of malformed strings, temporal values, ENUM/SET, BIT,
+  and other non-integer/non-DECIMAL types remain unchanged and can differ from
+  MySQL's numeric conversions. They remain on GMS's DOUBLE path. DISTINCT
+  still hashes original string representations before numeric conversion, so
+  equivalent spellings can remain distinct (the existing string-DISTINCT TODO).
+- Decimal arithmetic can retain negative zero: `SUM(0) * -1` now exposes the
+  inherited decimal text `-0`, unlike MySQL's decimal zero. SUM/AVG themselves
+  produce numeric zero. Internal apd values can omit trailing zeroes; wire
+  formatting uses the declared scale.
+
+`TestExactNumericAggregates` checks schema precision/scale and exact values
+for SUM, AVG, SUM DISTINCT, AVG DISTINCT, GROUP BY, and windows over INT,
+near-limit BIGINT UNSIGNED, and DECIMAL(10,3), plus NULL-only inputs and moving
+one-row frames with nonzero partition offsets. The unsigned sum is exactly
+55340232221128654843; the distinct sum is 36893488147419103229; averages are
+18446744073709551614.3333 and 18446744073709551614.5000.
+`TestNumericAggregateTypes` checks every integer width, literals, caps and
+approximate types. `TestExactAveragePrecisionIncrement` checks d=6 and exact
+0.333333333. All three pass on native arm64 and amd64/Rosetta. Copying only
+the new tests to detached parent `e7eb0866b` fails: SQL cases and type tests
+report DOUBLE instead of DECIMAL, and d=6 reports DOUBLE instead of DECIMAL(16,9).
+
+176 existing expectation entries change from float to decimal text or decimal
+schema metadata. The G6 commit updates 125 entries: 13 in
+`aggregation_queries.go`, 45 in `queries.go`, 67 in `window_functions_queries.go`.
+They cover grouped/DISTINCT/CTE results, arithmetic consuming aggregates,
+window partitions/frames, fractional AVG rounding, and two explicit column
+types. Every query, changed column and old/new value is listed in the G6
+commit message, including the negative-zero case. The shared validation commit
+updates 51 more entries found by auditing the full enginetest suite: prepared
+bindings, named windows, HAVING, aliases, generated columns, temporal scripts,
+set operations, privileges, stored procedures, joins and CREATE TABLE AS SELECT
+results/schema metadata. It lists every additional query and changed column
+in its own message. The updated CTAS fixtures also fail when copied alone
+to detached `e7eb0866b`. No query-plan expectations change.
+
+## G7 — Context policy for cost-based plans
+
+Commit: `47186e89bb5e2c0373fd013381b603527f233c9a`, directly after G6.
+
+Files:
+
+- `cost_based_plans_test.go`
+- `sql/session.go`
+- `sql/session_test.go`
+- `sql/analyzer/batch.go`
+- `sql/analyzer/indexed_joins.go`
+- `sql/analyzer/costed_index_scan.go`
+- `sql/analyzer/cost_based_plans_test.go`
+- `sql/memo/join_order_builder.go`
+- `sql/memo/memo.go`
+- `sql/memo/cost_based_plans_test.go`
+- `PATCHES.md`
+
+`ctx.SetDisableCostBasedPlans(true)` enables an embedding-only policy; the
+unexported context field defaults to false. Derived contexts (including spans
+and subqueries) inherit it. SQL system/user variables cannot change it, and
+a new context sharing the session starts with the default. Set it before analysis.
+
+The shared `Batch.evalOnce` skips `optimizeJoinsId`, including all three
+hard-coded occurrences in `node_batches.go` (simple SELECT, UPDATE, DELETE).
+Join optimization's direct entries also return the original tree.
+Rule-based resolution, filter pushdown, subquery lowering and execution-index
+assignment continue, producing executable nested-loop joins and scans.
+
+The complete production costing call graph is gated:
+
+- `optimizeJoins` alone calls `costedIndexScans`; both are gated, along with
+  `inOrderReplanJoin` and `replanJoin`.
+- `costedIndexScans` and memo `addIndexScans` call `getCostedIndexScan`; all
+  three return before index/statistics inspection when disabled.
+- `getCostedIndexScan` alone calls `indexCoster.cost`, which is also gated.
+- `replanJoin` calls join `ReorderJoin` and memo optimization. Direct
+  `ReorderJoin` callers keep the original graph without alternative enumeration.
+- `Memo.optimizeMemoGroup` alone calls `Coster.EstimateCost`. Direct memo users
+  instead choose the first implementation recursively, with no costing or
+  cost-dependent DISTINCT choice. Plan descriptions tolerate absent statistics
+  (zero/unknown estimates), so those plans build without cardinality collection.
+
+With the flag false, optimizer behavior and plans are unchanged. When true,
+cost-based index selection and hints processed by that optimizer are bypassed;
+independent rule-based index lowering remains. MySQL has no equivalent context
+API. Results retain SQL semantics, but plans, performance and unordered row
+order can differ from MySQL's optimizer. The flag does not remove floating-point
+arithmetic from SQL expressions.
+
+`TestDisableCostBasedPlans` has 15 cases with failing memo/index-cost hooks:
+simple SELECT, UPDATE, DELETE, inner/left/right/USING joins, IN/NOT IN/
+correlated/EXISTS subqueries, INSERT SELECT/JOIN, UPDATE JOIN and DELETE JOIN.
+All produce expected rows with zero calls and no cost-chosen physical joins.
+Each clears the flag and proves both hooks receive calls again.
+`TestCostBasedPlanFlagIsNotSQLSettable` and `TestDisableCostBasedPlansContext`
+check SQL isolation, defaults, inheritance and independent derived setters.
+`TestDisableCostBasedPlanEntryPoints`, `TestDisableCostBasedPlansInEveryBatch`
+and `TestDisableCostBasedMemoPlans` cover direct entries, continued lowering,
+absence of alternatives and building a memo plan without a coster.
+
+Parent evidence: tests copied to G6 `1ef05ba76` first fail to compile because
+the API is absent. Applying only the context field/accessor diff makes them
+compile without changing optimization: all 15 execution cases reach a failing
+cost hook, the batch test calls the forbidden rule, and the memo test enumerates
+alternatives. The API-only diff and both runs remain in the evidence directory.
+
 ## Validation and reproduction
 
 Every changed Go file was formatted with `gofmt`; `git diff --check` passes.
@@ -341,3 +523,41 @@ go test -p 2 -count=1 -tags=gms_pure_go ./sql/rowexec/ ./sql/plan/
 All four changed Go files pass `gofmt`; `git diff --check` passes. This revision
 replaces only former G5 `a62e5a236` and documentation `1d5321d8c`. Commits through
 `e0b621483` and all other branches are unchanged. Nothing was pushed.
+
+## G6/G7 validation and reproduction
+
+These patches append to pushed `e7eb0866b`. Prior commits and other branches
+are unchanged; nothing is pushed. Both commits use default identity/signing.
+Evidence and expectation inventory are in `.git/patch-evidence/g6-g7/`;
+detached regression worktrees are removed.
+
+Complete tests pass for every changed Go package except enginetest's
+pre-existing TestRegex failures. The full enginetest suite was also run to
+check query fixtures outside the requested filter. The YAML source has no
+Go package; its generator support package is tested:
+
+```sh
+go test -p 2 -count=1 -tags=gms_pure_go . ./sql ./sql/analyzer ./sql/memo ./sql/expression/function/aggregation ./enginetest/queries ./optgen/cmd/support
+go test -p 2 -count=1 -tags=gms_pure_go ./enginetest/ -run 'TestQueryPlans|TestJoinPlanning|TestIndexQueryPlans|TestQueries|TestAggregat|TestWindow'
+go test -p 2 -count=1 -tags=gms_pure_go ./enginetest/
+```
+
+All requested query, aggregate, window and plan checks pass. G7 changes none
+of their expectations; TestQueryPlans, TestJoinPlanning and TestIndexQueryPlans
+pass unchanged. No pre-existing failures occur in these required checks. The
+four previously documented TestRegexpReplaceWithFlags failures belong to the
+unchanged `sql/expression/function` package. The additional full enginetest run
+has 42 TestRegex subtest failures, all reproduced on untouched `e7eb0866b`;
+the parent and final failure-name sets are identical, with no new failures.
+Its complete suite passes outside that pre-existing failure set.
+
+G6 numeric tests pass in both requested modes:
+
+```sh
+numeric_tests='TestExactNumericAggregates|TestNumericAggregateTypes|TestExactAveragePrecisionIncrement'
+go test -p 2 -count=1 -tags=gms_pure_go . ./sql/expression/function/aggregation -run "$numeric_tests"
+GOARCH=amd64 go test -p 2 -count=1 -tags=gms_pure_go . ./sql/expression/function/aggregation -run "$numeric_tests"
+```
+
+The owner waived wasm for G6. All changed Go files pass gofmt and
+`git diff --check`. Default Go caches are used; no caches are overridden or cleaned.

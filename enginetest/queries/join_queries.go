@@ -1978,11 +1978,11 @@ CREATE TABLE teams (
 		Assertions: []ScriptTestAssertion{
 			{
 				Query:    "SELECT  team,  sum(value) FROM traces FULL OUTER JOIN teams ON teams.namespace = traces.namespace GROUP BY team;",
-				Expected: []sql.Row{{"sam", nil}, {"janos", float64(400)}, {nil, float64(500)}},
+				Expected: []sql.Row{{"sam", nil}, {"janos", "400"}, {nil, "500"}},
 			},
 			{
 				Query:    "SELECT  team,  sum(value) FROM teams FULL OUTER JOIN traces ON teams.namespace = traces.namespace GROUP BY team;",
-				Expected: []sql.Row{{"sam", nil}, {"janos", float64(400)}, {nil, float64(500)}},
+				Expected: []sql.Row{{"sam", nil}, {"janos", "400"}, {nil, "500"}},
 			},
 		},
 	},

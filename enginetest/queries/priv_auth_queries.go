@@ -2540,7 +2540,7 @@ var UserPrivTests = []UserPrivilegeTest{
 				User:     "testadmin",
 				Host:     "%",
 				Query:    `SELECT SUM(found) FROM ((SELECT 1 as found FROM information_schema.tables) UNION (SELECT 1 as found FROM information_schema.events)) as all_found;`,
-				Expected: []sql.Row{{1.0}},
+				Expected: []sql.Row{{"1"}},
 			},
 			{
 				User:     "testadmin",
@@ -2552,7 +2552,7 @@ var UserPrivTests = []UserPrivilegeTest{
 				User:     "testadmin",
 				Host:     "%",
 				Query:    `SELECT SUM(found) FROM ((SELECT 1 as found FROM dual) UNION (SELECT 1 as found FROM dual)) as all_found;`,
-				Expected: []sql.Row{{1.0}},
+				Expected: []sql.Row{{"1"}},
 			},
 			{
 				User: "testadmin",

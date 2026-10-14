@@ -515,7 +515,7 @@ func TestHavingAggregateInputs(t *testing.T) {
 				},
 				{
 					Query:    "select sum(col1) from tab0 group by col1, col2 having col1 < count(*);",
-					Expected: []sql.Row{{float64(0)}},
+					Expected: []sql.Row{{"0"}},
 				},
 			},
 		},
@@ -543,15 +543,15 @@ func TestHavingAggregateInputs(t *testing.T) {
 			Assertions: []queries.ScriptTestAssertion{
 				{
 					Query:    "select sum(col1), sum(col2) from tab0 group by col1, col2 having col1 >= count(*) order by col1, col2;",
-					Expected: []sql.Row{{float64(4), float64(40)}, {float64(3), float64(30)}},
+					Expected: []sql.Row{{"4", "40"}, {"3", "30"}},
 				},
 				{
 					Query:    "select sum(col1), sum(col2) from tab0 group by col1, col2 having col1 < count(*) order by col1, col2;",
-					Expected: []sql.Row{{float64(0), float64(10)}},
+					Expected: []sql.Row{{"0", "10"}},
 				},
 				{
 					Query:    "select sum(col1), sum(col2) from tab0 group by col1, col2 having col1 is null;",
-					Expected: []sql.Row{{nil, float64(40)}},
+					Expected: []sql.Row{{nil, "40"}},
 				},
 			},
 		},

@@ -5190,7 +5190,7 @@ func TestPrepared(t *testing.T, harness Harness) {
 				"v1": mustBuildBindVariable(1),
 				"v2": mustBuildBindVariable(1),
 			},
-			Expected: []sql.Row{{float64(3)}, {float64(3)}, {float64(3)}},
+			Expected: []sql.Row{{"3"}, {"3"}, {"3"}},
 		},
 		{
 			Query: "With x as (select sum(?) from mytable) select sum(?) from x ORDER BY (select sum(?) from mytable)",
@@ -5199,7 +5199,7 @@ func TestPrepared(t *testing.T, harness Harness) {
 				"v2": mustBuildBindVariable(1),
 				"v3": mustBuildBindVariable(1),
 			},
-			Expected: []sql.Row{{float64(1)}},
+			Expected: []sql.Row{{"1"}},
 		},
 		{
 			Query: "SELECT CAST(? as CHAR) UNION SELECT CAST(? as CHAR)",
@@ -5313,7 +5313,7 @@ func TestPrepared(t *testing.T, harness Harness) {
 				"v1": mustBuildBindVariable(int64(2)),
 			},
 			Expected: []sql.Row{
-				{2, float64(4)},
+				{2, "4"},
 			},
 		},
 		{
@@ -5321,7 +5321,7 @@ func TestPrepared(t *testing.T, harness Harness) {
 				"v1": mustBuildBindVariable(int64(2)),
 			},
 			Expected: []sql.Row{
-				{2, float64(4)},
+				{2, "4"},
 			},
 		},
 		{
@@ -5329,8 +5329,8 @@ func TestPrepared(t *testing.T, harness Harness) {
 				"v1": mustBuildBindVariable(int64(0)),
 			},
 			Expected: []sql.Row{
-				{1, float64(2)},
-				{2, float64(4)},
+				{1, "2"},
+				{2, "4"},
 			},
 		},
 		{
@@ -5338,7 +5338,7 @@ func TestPrepared(t *testing.T, harness Harness) {
 				"v1": mustBuildBindVariable(int64(3)),
 			},
 			Expected: []sql.Row{
-				{2, float64(2)},
+				{2, "2"},
 			},
 		},
 		{
@@ -5346,8 +5346,8 @@ func TestPrepared(t *testing.T, harness Harness) {
 				"v1": mustBuildBindVariable(int64(1)),
 			},
 			Expected: []sql.Row{
-				{1, float64(1)},
-				{2, float64(4)},
+				{1, "1"},
+				{2, "4"},
 			},
 		},
 	}

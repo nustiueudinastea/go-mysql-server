@@ -1287,7 +1287,7 @@ var GroupByScriptTests = []ScriptTest{
 		Assertions: []ScriptTestAssertion{
 			{
 				Query:    "SELECT column_0, sum(column_1) FROM (values row(1.00,1), row(1.00,3), row(2,2), row(2,5), row(3,9)) a group by 1 order by 1;",
-				Expected: []sql.Row{{"1.00", float64(4)}, {"2.00", float64(7)}, {"3.00", float64(9)}},
+				Expected: []sql.Row{{"1.00", "4"}, {"2.00", "7"}, {"3.00", "9"}},
 			},
 		},
 	},
@@ -1406,7 +1406,7 @@ var GroupByScriptTests = []ScriptTest{
 			},
 			{
 				Query:    "select sum(any_value(id)) from members",
-				Expected: []sql.Row{{float64(33)}},
+				Expected: []sql.Row{{"33"}},
 			},
 			{
 				Query:    "select count(distinct any_value(team)) from members",
@@ -1551,15 +1551,15 @@ var GroupByScriptTests = []ScriptTest{
 			{
 				Query: "select t0.c0 = t0.c1 as ref0, sum(1) as ref1 from t0 group by ref0",
 				Expected: []sql.Row{
-					{nil, float64(2)},
+					{nil, "2"},
 				},
 			},
 			{
 				Query: "select t1.c0 = t1.c1 as ref0, sum(1) as ref1 from t1 group by ref0",
 				Expected: []sql.Row{
-					{nil, float64(3)},
-					{true, float64(1)},
-					{false, float64(1)},
+					{nil, "3"},
+					{true, "1"},
+					{false, "1"},
 				},
 			},
 		},

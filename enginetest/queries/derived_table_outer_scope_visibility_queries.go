@@ -82,7 +82,7 @@ var DerivedTableOuterScopeVisibilityQueries = []ScriptTest{
 				// Recursive CTEs are eligible for outer scope visibility as well, as long as they are contained in a
 				// subquery expression.
 				Query:    "select distinct n1.val, (with recursive cte1(n) as (select (n1.val) from dual union all select n + 1 from cte1 where n < 10) select sum(n) from cte1) from numbers n1 where n1.val > 4;",
-				Expected: []sql.Row{{5, 45.0}, {6, 40.0}},
+				Expected: []sql.Row{{5, "45"}, {6, "40"}},
 			},
 		},
 	},

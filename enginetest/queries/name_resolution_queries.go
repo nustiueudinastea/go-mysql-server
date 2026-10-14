@@ -380,9 +380,9 @@ var NameResolutionScriptTests = []ScriptTest{
 			{
 				Query: `select col0, sum(col1 * col2) as val from tab2 group by col0 having sum(col1 * col2) > 0;`,
 				Expected: []sql.Row{
-					{15, 5307.0},
-					{91, 4661.0},
-					{92, 2378.0},
+					{15, "5307"},
+					{91, "4661"},
+					{92, "2378"},
 				},
 			},
 			{
@@ -525,13 +525,13 @@ var ColumnAliasQueries = []ScriptTest{
 					},
 					{
 						Name: "COL2",
-						Type: types.Float64,
+						Type: types.MustCreateDecimalType(41, 0),
 					},
 				},
 				Expected: []sql.Row{
-					{"first row", float64(1)},
-					{"second row", float64(2)},
-					{"third row", float64(3)},
+					{"first row", "1"},
+					{"second row", "2"},
+					{"third row", "3"},
 				},
 			},
 			{
@@ -554,13 +554,13 @@ var ColumnAliasQueries = []ScriptTest{
 					},
 					{
 						Name: "coL2",
-						Type: types.Float64,
+						Type: types.MustCreateDecimalType(41, 0),
 					},
 				},
 				Expected: []sql.Row{
-					{"first row", float64(1)},
-					{"second row", float64(2)},
-					{"third row", float64(3)},
+					{"first row", "1"},
+					{"second row", "2"},
+					{"third row", "3"},
 				},
 			},
 			{
@@ -573,13 +573,13 @@ var ColumnAliasQueries = []ScriptTest{
 					},
 					{
 						Name: "TimeStamp",
-						Type: types.Float64,
+						Type: types.MustCreateDecimalType(41, 0),
 					},
 				},
 				Expected: []sql.Row{
-					{"first row", float64(1)},
-					{"second row", float64(2)},
-					{"third row", float64(3)},
+					{"first row", "1"},
+					{"second row", "2"},
+					{"third row", "3"},
 				},
 			},
 			{

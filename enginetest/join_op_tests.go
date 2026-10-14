@@ -798,7 +798,7 @@ SELECT SUM(x) FROM xy WHERE x IN (
     )
   ) AND
   x = 2;`,
-				Expected: []sql.Row{{float64(2)}},
+				Expected: []sql.Row{{"2"}},
 			},
 			{
 				Query:    "select * from ab left join uv on a = u where exists (select * from uv where false)",
@@ -1647,9 +1647,9 @@ SELECT SUM(x) FROM xy WHERE x IN (
 			{
 				Query: "select sum(x.i) + y.i from mytable as x, mytable as y where x.i = y.i GROUP BY x.i",
 				Expected: []sql.Row{
-					{float64(2)},
-					{float64(4)},
-					{float64(6)},
+					{"2"},
+					{"4"},
+					{"6"},
 				},
 			},
 			{

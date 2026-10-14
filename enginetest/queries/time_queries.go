@@ -121,9 +121,9 @@ var TemporalScriptTests = []ScriptTest{
 			{
 				Query: "SELECT unix_timestamp(timestamp_col) div 60 * 60 as timestamp_col, avg(i) from datetime_table group by 1 order by unix_timestamp(timestamp_col) div 60 * 60",
 				Expected: []sql.Row{
-					{int64(1577966400), 1.0},
-					{int64(1578225600), 2.0},
-					{int64(1578398400), 3.0}},
+					{int64(1577966400), "1.0000"},
+					{int64(1578225600), "2.0000"},
+					{int64(1578398400), "3.0000"}},
 			},
 		},
 	},

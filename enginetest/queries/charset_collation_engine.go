@@ -1299,7 +1299,7 @@ T.TABLE_SCHEMA AS 'database', T.TABLE_CATALOG AS 'catalog',
 			},
 			{
 				Query:    "SELECT SUM(txt LIKE '## %') FROM m;",
-				Expected: []sql.Row{{float64(3)}},
+				Expected: []sql.Row{{"3"}},
 			},
 			{
 				Query:    "SELECT id FROM m WHERE txt LIKE '##%' ORDER BY id;",
@@ -1361,7 +1361,7 @@ T.TABLE_SCHEMA AS 'database', T.TABLE_CATALOG AS 'catalog',
 			},
 			{
 				Query:    "SELECT SUM(txt LIKE '## %') FROM z;",
-				Expected: []sql.Row{{float64(4)}},
+				Expected: []sql.Row{{"4"}},
 			},
 			{
 				Query: "SELECT id FROM n WHERE txt NOT LIKE '## %' ORDER BY id;",
