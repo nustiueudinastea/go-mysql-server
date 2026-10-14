@@ -37,6 +37,7 @@ func modifyUpdateExprsForJoin(ctx *sql.Context, a *Analyzer, n sql.Node, scope *
 		}
 
 		uj := plan.NewUpdateJoin(updateTargets, us)
+		uj.TableOrder = n.TableOrder
 		ret, err := n.WithChildren(ctx, uj)
 		if err != nil {
 			return nil, transform.SameTree, err

@@ -32,6 +32,8 @@ var ErrUpdateUnexpectedSetResult = errors.NewKind("attempted to set field but ex
 type Update struct {
 	UnaryNode
 	checks sql.CheckConstraints
+	// TableOrder preserves table-reference order before join optimization.
+	TableOrder []string
 	// Returning is a list of expressions to return after the update operation. This feature is not
 	// supported in MySQL's syntax, but is exposed through PostgreSQL's syntax.
 	Returning []sql.Expression
@@ -57,7 +59,8 @@ func NewUpdate(ctx *sql.Context, n sql.Node, ignore bool, updateExprs *UpdateExp
 			ignore,
 			updateExprs,
 		)},
-		Ignore: ignore,
+		Ignore:     ignore,
+		TableOrder: tableOrder(n.Schema(ctx)),
 	}
 }
 

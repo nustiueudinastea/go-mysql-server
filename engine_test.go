@@ -275,3 +275,43 @@ func TestInsertTimeToDatetimeQueryDate(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []sql.Row{{time.Date(2001, 2, 3, 12, 34, 56, 0, time.UTC)}}, rows)
 }
+
+func TestUpdateJoinTargetOrder(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		setup    []string
+		update   string
+		query    string
+		expected []sql.Row
+	}{
+		{"aliases", []string{"CREATE TABLE target (id INT PRIMARY KEY, v INT)", "INSERT INTO target VALUES (1, 0)"},
+			"UPDATE target z JOIN target a ON z.id = a.id SET z.v = 1, a.v = 2", "SELECT v FROM target", []sql.Row{{int32(2)}}},
+		{"cascade", []string{
+			"CREATE TABLE parent (id INT PRIMARY KEY)",
+			"CREATE TABLE child (id INT PRIMARY KEY, parent_id INT, v INT, FOREIGN KEY (parent_id) REFERENCES parent(id) ON UPDATE CASCADE)",
+			"INSERT INTO parent VALUES (1)", "INSERT INTO child VALUES (1, 1, 0)"},
+			"UPDATE child JOIN parent ON child.parent_id = parent.id SET child.v = 1, parent.id = 2", "SELECT parent_id, v FROM child", []sql.Row{{int32(2), int32(1)}}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			for i := 0; i < 100; i++ {
+				db := memory.NewDatabase("db")
+				provider := memory.NewDBProvider(db)
+				engine := NewDefault(provider)
+				ctx := sql.NewContext(context.Background(), sql.WithSession(memory.NewSession(sql.NewBaseSession(), provider)))
+				ctx.SetCurrentDatabase("db")
+				for _, query := range append(test.setup, test.update) {
+					_, iter, _, err := engine.Query(ctx, query)
+					require.NoError(t, err, "iteration %d: %s", i, query)
+					_, err = sql.RowIterToRows(ctx, iter)
+					require.NoError(t, err, "iteration %d: %s", i, query)
+				}
+				_, iter, _, err := engine.Query(ctx, test.query)
+				require.NoError(t, err)
+				rows, err := sql.RowIterToRows(ctx, iter)
+				require.NoError(t, err)
+				require.Equal(t, test.expected, rows, "iteration %d", i)
+				require.NoError(t, engine.Close())
+			}
+		})
+	}
+}

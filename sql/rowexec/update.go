@@ -17,6 +17,7 @@ package rowexec
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	go_errors "gopkg.in/src-d/go-errors.v1"
@@ -220,6 +221,7 @@ type updateJoinIter struct {
 	//  node
 	joinNode    sql.Node
 	updaters    map[string]sql.RowUpdater
+	targetOrder []string
 	caches      map[string]sql.KeyValueCache
 	disposals   map[string]sql.DisposeFunc
 	accumulator *updateJoinRowHandler
@@ -229,6 +231,12 @@ type updateJoinIter struct {
 var _ sql.RowIter = (*updateJoinIter)(nil)
 
 func (u *updateJoinIter) Next(ctx *sql.Context) (sql.Row, error) {
+	if u.targetOrder == nil {
+		for name := range u.updaters {
+			u.targetOrder = append(u.targetOrder, name)
+		}
+		sort.Strings(u.targetOrder)
+	}
 	for {
 		oldAndNewRow, err := u.updateSourceIter.Next(ctx)
 		if err != nil {
@@ -242,7 +250,7 @@ func (u *updateJoinIter) Next(ctx *sql.Context) (sql.Row, error) {
 		// RETURNING needs the first match for each target, even if its values do not change.
 		returnUnchangedRow := false
 
-		for tableName, _ := range u.updaters {
+		for _, tableName := range u.targetOrder {
 			tableName = strings.ToLower(tableName)
 			oldTableRow := tableToOldRowMap[tableName]
 

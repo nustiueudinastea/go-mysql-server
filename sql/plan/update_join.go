@@ -15,6 +15,7 @@
 package plan
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/dolthub/go-mysql-server/sql"
@@ -22,6 +23,7 @@ import (
 
 type UpdateJoin struct {
 	UpdateTargets map[string]sql.Node
+	TableOrder    []string
 	UnaryNode
 }
 
@@ -56,6 +58,7 @@ func (u *UpdateJoin) DebugString(ctx *sql.Context) string {
 func (u *UpdateJoin) GetUpdatable() sql.UpdatableTable {
 	return &updatableJoinTable{
 		updateTargets: u.UpdateTargets,
+		tableOrder:    u.TargetOrder(),
 		joinNode:      u.Child.(*UpdateSource).Child,
 	}
 }
@@ -66,7 +69,9 @@ func (u *UpdateJoin) WithChildren(ctx *sql.Context, children ...sql.Node) (sql.N
 		return nil, sql.ErrInvalidChildrenNumber.New(u, len(children), 1)
 	}
 
-	return NewUpdateJoin(u.UpdateTargets, children[0]), nil
+	ret := *u
+	ret.Child = children[0]
+	return &ret, nil
 }
 
 func (u *UpdateJoin) IsReadOnly() bool {
@@ -79,12 +84,13 @@ func (u *UpdateJoin) CollationCoercibility(ctx *sql.Context) (collation sql.Coll
 }
 
 func (u *UpdateJoin) GetUpdaters(ctx *sql.Context) (map[string]sql.RowUpdater, error) {
-	return getUpdaters(u.UpdateTargets, ctx)
+	return getUpdaters(u.UpdateTargets, u.TargetOrder(), ctx)
 }
 
-func getUpdaters(updateTargets map[string]sql.Node, ctx *sql.Context) (map[string]sql.RowUpdater, error) {
+func getUpdaters(updateTargets map[string]sql.Node, order []string, ctx *sql.Context) (map[string]sql.RowUpdater, error) {
 	updaterMap := make(map[string]sql.RowUpdater)
-	for tableName, updateTarget := range updateTargets {
+	for _, tableName := range order {
+		updateTarget := updateTargets[tableName]
 		updatable, err := GetUpdatable(updateTarget)
 		if err != nil {
 			return nil, err
@@ -97,6 +103,7 @@ func getUpdaters(updateTargets map[string]sql.Node, ctx *sql.Context) (map[strin
 // updatableJoinTable manages the update of multiple tables.
 type updatableJoinTable struct {
 	updateTargets map[string]sql.Node
+	tableOrder    []string
 	joinNode      sql.Node
 }
 
@@ -134,11 +141,12 @@ func (u *updatableJoinTable) Collation() sql.CollationID {
 
 // Updater implements the sql.UpdatableTable interface.
 func (u *updatableJoinTable) Updater(ctx *sql.Context) sql.RowUpdater {
-	updaters, _ := getUpdaters(u.updateTargets, ctx)
+	updaters, _ := getUpdaters(u.updateTargets, u.tableOrder, ctx)
 	return &updatableJoinUpdater{
-		updaterMap: updaters,
-		schemaMap:  RecreateTableSchemaFromJoinSchema(u.joinNode.Schema(ctx)),
-		joinSchema: u.joinNode.Schema(ctx),
+		updaterMap:   updaters,
+		updaterOrder: u.tableOrder,
+		schemaMap:    RecreateTableSchemaFromJoinSchema(u.joinNode.Schema(ctx)),
+		joinSchema:   u.joinNode.Schema(ctx),
 	}
 }
 
@@ -161,23 +169,26 @@ func RecreateTableSchemaFromJoinSchema(joinSchema sql.Schema) map[string]sql.Sch
 // updatableJoinUpdater manages the process of taking a join row and allocating the respective updates to each updatable
 // table.
 type updatableJoinUpdater struct {
-	updaterMap map[string]sql.RowUpdater
-	schemaMap  map[string]sql.Schema
-	joinSchema sql.Schema
+	updaterMap   map[string]sql.RowUpdater
+	updaterOrder []string
+	schemaMap    map[string]sql.Schema
+	joinSchema   sql.Schema
 }
 
 var _ sql.RowUpdater = (*updatableJoinUpdater)(nil)
 
 // StatementBegin implements the sql.TableEditor interface.
 func (u *updatableJoinUpdater) StatementBegin(ctx *sql.Context) {
-	for _, v := range u.updaterMap {
+	for _, name := range u.updaterOrder {
+		v := u.updaterMap[name]
 		v.StatementBegin(ctx)
 	}
 }
 
 // DiscardChanges implements the sql.TableEditor interface.
 func (u *updatableJoinUpdater) DiscardChanges(ctx *sql.Context, errorEncountered error) error {
-	for _, v := range u.updaterMap {
+	for _, name := range u.updaterOrder {
+		v := u.updaterMap[name]
 		err := v.DiscardChanges(ctx, errorEncountered)
 		if err != nil {
 			return err
@@ -189,7 +200,8 @@ func (u *updatableJoinUpdater) DiscardChanges(ctx *sql.Context, errorEncountered
 
 // StatementComplete implements the sql.TableEditor interface.
 func (u *updatableJoinUpdater) StatementComplete(ctx *sql.Context) error {
-	for _, v := range u.updaterMap {
+	for _, name := range u.updaterOrder {
+		v := u.updaterMap[name]
 		err := v.StatementComplete(ctx)
 
 		if err != nil {
@@ -205,7 +217,8 @@ func (u *updatableJoinUpdater) Update(ctx *sql.Context, old sql.Row, new sql.Row
 	tableToOldRowMap := SplitRowIntoTableRowMap(old, u.joinSchema)
 	tableToNewRowMap := SplitRowIntoTableRowMap(new, u.joinSchema)
 
-	for tableName, updater := range u.updaterMap {
+	for _, tableName := range u.updaterOrder {
+		updater := u.updaterMap[tableName]
 		oldRow := tableToOldRowMap[tableName]
 		newRow := tableToNewRowMap[tableName]
 		schema := u.schemaMap[tableName]
@@ -258,7 +271,8 @@ func SplitRowIntoTableRowMap(row sql.Row, joinSchema sql.Schema) map[string]sql.
 
 // Close implements the sql.RowUpdater interface.
 func (u *updatableJoinUpdater) Close(ctx *sql.Context) error {
-	for _, updater := range u.updaterMap {
+	for _, name := range u.updaterOrder {
+		updater := u.updaterMap[name]
 		err := updater.Close(ctx)
 		if err != nil {
 			return err
@@ -266,4 +280,41 @@ func (u *updatableJoinUpdater) Close(ctx *sql.Context) error {
 	}
 
 	return nil
+}
+
+// tableOrder returns the order of table references, including aliases, in a schema.
+func tableOrder(schema sql.Schema) []string {
+	var order []string
+	seen := make(map[string]bool)
+	for _, col := range schema {
+		name := strings.ToLower(col.Source)
+		if name != "" && !seen[name] {
+			order = append(order, name)
+			seen[name] = true
+		}
+	}
+	return order
+}
+
+// TargetOrder applies updates in statement table-reference order, independent of
+// the optimizer's join order. Any targets absent from the original references
+// (for example, an analyzer-created target) are ordered by alias.
+func (u *UpdateJoin) TargetOrder() []string {
+	order := u.TableOrder
+	var targets []string
+	seen := make(map[string]bool)
+	for _, name := range order {
+		if _, ok := u.UpdateTargets[name]; ok && !seen[name] {
+			targets = append(targets, name)
+			seen[name] = true
+		}
+	}
+	var remaining []string
+	for name := range u.UpdateTargets {
+		if !seen[name] {
+			remaining = append(remaining, name)
+		}
+	}
+	sort.Strings(remaining)
+	return append(targets, remaining...)
 }

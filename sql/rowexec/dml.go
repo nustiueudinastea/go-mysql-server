@@ -441,6 +441,7 @@ func (b *BaseBuilder) buildUpdateJoin(ctx *sql.Context, n *plan.UpdateJoin, row 
 		updateSourceIter: ji,
 		joinSchema:       n.Child.(*plan.UpdateSource).Child.Schema(ctx),
 		updaters:         updaters,
+		targetOrder:      n.TargetOrder(),
 		caches:           make(map[string]sql.KeyValueCache),
 		disposals:        make(map[string]sql.DisposeFunc),
 		joinNode:         n.Child.(*plan.UpdateSource).Child,

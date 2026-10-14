@@ -128,7 +128,8 @@ func applyForeignKeysToNodes(ctx *sql.Context, a *Analyzer, n sql.Node, cache *f
 		if uj, ok := n.Child.(*plan.UpdateJoin); ok {
 			updateTargets := uj.UpdateTargets
 			fkHandlerMap := make(map[string]sql.Node, len(updateTargets))
-			for tableName, updateTarget := range updateTargets {
+			for _, tableName := range uj.TargetOrder() {
+				updateTarget := updateTargets[tableName]
 				fkHandlerMap[tableName] = updateTarget
 				fkHandler, err := getForeignKeyHandlerFromUpdateTarget(ctx, a.Catalog, updateTarget, cache, fkChain)
 				if err != nil {
@@ -140,7 +141,9 @@ func applyForeignKeysToNodes(ctx *sql.Context, a *Analyzer, n sql.Node, cache *f
 					fkHandlerMap[tableName] = fkHandler
 				}
 			}
+			order := uj.TableOrder
 			uj = plan.NewUpdateJoin(fkHandlerMap, uj.Child)
+			uj.TableOrder = order
 			nn, err := n.WithChildren(ctx, uj)
 			return nn, transform.NewTree, err
 		}
