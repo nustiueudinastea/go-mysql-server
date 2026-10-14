@@ -30,7 +30,7 @@ func NewAvg(e sql.Expression) *Avg {
 }
 
 func (a *Avg) Type(ctx *sql.Context) sql.Type {
-	return types.Float64
+	return numericAggregateType(ctx, a.Child, true)
 }
 
 func (a *Avg) IsNullable(ctx *sql.Context) bool {
@@ -906,7 +906,7 @@ func NewSum(e sql.Expression) *Sum {
 }
 
 func (a *Sum) Type(ctx *sql.Context) sql.Type {
-	return types.Float64
+	return numericAggregateType(ctx, a.Child, false)
 }
 
 func (a *Sum) IsNullable(ctx *sql.Context) bool {

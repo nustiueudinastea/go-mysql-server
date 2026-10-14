@@ -17,6 +17,8 @@ package aggregation
 import (
 	"testing"
 
+	"github.com/cockroachdb/apd/v3"
+
 	"github.com/stretchr/testify/require"
 
 	"github.com/dolthub/go-mysql-server/sql"
@@ -45,10 +47,10 @@ func TestAvg_Eval_INT32(t *testing.T) {
 	require.Equal(nil, evalBuffer(t, buffer))
 
 	buffer.Update(ctx, sql.NewRow(int32(1)))
-	require.Equal(float64(1), evalBuffer(t, buffer))
+	require.Equal("1.0000", evalBuffer(t, buffer).(*apd.Decimal).Text('f'))
 
 	buffer.Update(ctx, sql.NewRow(int32(2)))
-	require.Equal(float64(1.5), evalBuffer(t, buffer))
+	require.Equal("1.5000", evalBuffer(t, buffer).(*apd.Decimal).Text('f'))
 }
 
 func TestAvg_Eval_UINT64(t *testing.T) {
@@ -61,11 +63,11 @@ func TestAvg_Eval_UINT64(t *testing.T) {
 
 	err := buffer.Update(ctx, sql.NewRow(uint64(1)))
 	require.NoError(err)
-	require.Equal(float64(1), evalBuffer(t, buffer))
+	require.Equal("1.0000", evalBuffer(t, buffer).(*apd.Decimal).Text('f'))
 
 	err = buffer.Update(ctx, sql.NewRow(uint64(2)))
 	require.NoError(err)
-	require.Equal(float64(1.5), evalBuffer(t, buffer))
+	require.Equal("1.5000", evalBuffer(t, buffer).(*apd.Decimal).Text('f'))
 }
 
 func TestAvg_Eval_String(t *testing.T) {
@@ -112,12 +114,12 @@ func TestAvg_NUMS_AND_NULLS(t *testing.T) {
 		{
 			"float values with nil",
 			[]sql.Row{{2.0}, {2.0}, {3.}, {4.}, {nil}},
-			float64(2.75),
+			apd.New(27500, -4),
 		},
 		{
 			"float values with nil",
 			[]sql.Row{{1}, {2}, {3}, {nil}, {nil}},
-			float64(2.0),
+			apd.New(20000, -4),
 		},
 		{
 			"no rows",

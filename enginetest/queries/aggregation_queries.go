@@ -375,11 +375,11 @@ var AggregationScriptTests = []ScriptTest{
 		Assertions: []ScriptTestAssertion{
 			{
 				Query:    "SELECT - SUM( DISTINCT - - 71 ) AS col2 FROM tab2 cor0",
-				Expected: []sql.Row{{float64(-71)}},
+				Expected: []sql.Row{{"-71"}},
 			},
 			{
 				Query:    "SELECT - SUM ( DISTINCT - - 71 ) AS col2 FROM tab2 cor0",
-				Expected: []sql.Row{{float64(-71)}},
+				Expected: []sql.Row{{"-71"}},
 			},
 			{
 				Query:    "SELECT + MAX( DISTINCT ( - col0 ) ) FROM tab1 AS cor0",
@@ -387,7 +387,7 @@ var AggregationScriptTests = []ScriptTest{
 			},
 			{
 				Query:    "SELECT SUM( DISTINCT + col1 ) * - 22 - - ( - COUNT( * ) ) col0 FROM tab1 AS cor0",
-				Expected: []sql.Row{{float64(-1455)}},
+				Expected: []sql.Row{{"-1455"}},
 			},
 			{
 				Query:    "SELECT MIN (DISTINCT col1) from tab1 GROUP BY col0 ORDER BY col0",
@@ -395,11 +395,11 @@ var AggregationScriptTests = []ScriptTest{
 			},
 			{
 				Query:    "SELECT SUM (DISTINCT col1) from tab1 GROUP BY col0 ORDER BY col0",
-				Expected: []sql.Row{{float64(14)}, {float64(5)}, {float64(47)}},
+				Expected: []sql.Row{{"14"}, {"5"}, {"47"}},
 			},
 			{
 				Query:    "SELECT pk, SUM(DISTINCT v1), MAX(v1) FROM mytable GROUP BY pk ORDER BY pk",
-				Expected: []sql.Row{{int64(1), float64(3), int64(2)}, {int64(2), float64(2), int64(2)}},
+				Expected: []sql.Row{{int64(1), "3", int64(2)}, {int64(2), "2", int64(2)}},
 			},
 			{
 				Query:    "SELECT pk, MIN(DISTINCT v1), MAX(DISTINCT v1) FROM mytable GROUP BY pk ORDER BY pk",
@@ -407,7 +407,7 @@ var AggregationScriptTests = []ScriptTest{
 			},
 			{
 				Query:    "SELECT SUM(DISTINCT pk * v1) from mytable",
-				Expected: []sql.Row{{float64(7)}},
+				Expected: []sql.Row{{"7"}},
 			},
 			{
 				Query:    "SELECT SUM(DISTINCT POWER(v1, 2)) FROM mytable",
@@ -493,15 +493,15 @@ var AggregationScriptTests = []ScriptTest{
 		Assertions: []ScriptTestAssertion{
 			{
 				Query:    "SELECT sum(id), sum(val1), sum(val2) FROM float_table ORDER BY id;",
-				Expected: []sql.Row{{float64(6), -9.322676295501879e-16, 10.000000238418579}},
+				Expected: []sql.Row{{"6", -9.322676295501879e-16, 10.000000238418579}},
 			},
 			{
 				Query:    "SELECT sum(id), sum(val1), sum(val2) FROM float_table ORDER BY id;",
-				Expected: []sql.Row{{float64(6), -9.322676295501879e-16, 10.000000238418579}},
+				Expected: []sql.Row{{"6", -9.322676295501879e-16, 10.000000238418579}},
 			},
 			{
 				Query:    "SELECT avg(id), avg(val1), avg(val2) FROM float_table ORDER BY id;",
-				Expected: []sql.Row{{float64(2), -3.107558765167293e-16, 3.333333412806193}},
+				Expected: []sql.Row{{"2.0000", -3.107558765167293e-16, 3.333333412806193}},
 			},
 		},
 	},
@@ -518,7 +518,7 @@ var AggregationScriptTests = []ScriptTest{
 			},
 			{
 				Query:    "SELECT SUM(id), (SELECT SUM(id) FROM subquery_aggregate_scope WHERE tag = 'keep') FROM subquery_aggregate_scope;",
-				Expected: []sql.Row{{float64(6), float64(1)}},
+				Expected: []sql.Row{{"6", "1"}},
 			},
 			{
 				Query:    "SELECT COUNT(id), (SELECT COUNT(id) FROM subquery_aggregate_scope WHERE tag = 'keep') FROM subquery_aggregate_scope;",
@@ -526,7 +526,7 @@ var AggregationScriptTests = []ScriptTest{
 			},
 			{
 				Query:    "SELECT AVG(id), (SELECT AVG(id) FROM subquery_aggregate_scope WHERE tag = 'keep') FROM subquery_aggregate_scope;",
-				Expected: []sql.Row{{float64(2), float64(1)}},
+				Expected: []sql.Row{{"2.0000", "1.0000"}},
 			},
 			{
 				Query:    "SELECT MAX(id), (SELECT MAX(id) FROM subquery_aggregate_scope WHERE tag = 'keep') FROM subquery_aggregate_scope;",
@@ -598,7 +598,7 @@ var AggregationScriptTests = []ScriptTest{
 			},
 			{
 				Query:    "SELECT grp, SUM(DISTINCT val) FROM correlated_aggregate_scope a GROUP BY grp HAVING EXISTS (SELECT 1 FROM correlated_aggregate_scope b WHERE SUM(DISTINCT a.val) = b.val) ORDER BY grp;",
-				Expected: []sql.Row{{2, float64(1)}},
+				Expected: []sql.Row{{2, "1"}},
 			},
 			{
 				Query:    "SELECT grp FROM correlated_aggregate_scope a GROUP BY grp HAVING EXISTS (SELECT 1 FROM correlated_aggregate_scope b WHERE SUM(DISTINCT a.val) = b.val) ORDER BY grp;",
@@ -1129,7 +1129,7 @@ var AggregationScriptTests = []ScriptTest{
 			},
 			{
 				Query:    "SELECT pk1, SUM(c1) FROM two_pk",
-				Expected: []sql.Row{{0, 60.0}},
+				Expected: []sql.Row{{0, "60"}},
 			},
 		},
 	},

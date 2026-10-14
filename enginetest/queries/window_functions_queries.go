@@ -59,17 +59,17 @@ var WindowFunctionsScriptTests = []ScriptTest{
 			{
 				Query: "SELECT g, SUM(CASE WHEN REGEXP_LIKE(s, 'a') THEN v ELSE 0 END) OVER (PARTITION BY g) AS total FROM regexp_windows ORDER BY g",
 				Expected: []sql.Row{
-					{0, float64(10)},
-					{1, float64(50)},
-					{2, float64(0)},
+					{0, "10"},
+					{1, "50"},
+					{2, "0"},
 				},
 			},
 			{
 				Query: "SELECT g, SUM(REGEXP_INSTR(s, 'a')) OVER (PARTITION BY g) AS pos FROM regexp_windows ORDER BY g",
 				Expected: []sql.Row{
-					{0, float64(1)},
-					{1, float64(1)},
-					{2, float64(0)},
+					{0, "1"},
+					{1, "1"},
+					{2, "0"},
 				},
 			},
 			{
@@ -175,7 +175,7 @@ var WindowFunctionsScriptTests = []ScriptTest{
 			},
 			{
 				Query:    "SELECT SUM(1) OVER () FROM literal_windows",
-				Expected: []sql.Row{{float64(3)}, {float64(3)}, {float64(3)}},
+				Expected: []sql.Row{{"3"}, {"3"}, {"3"}},
 			},
 			{
 				Query:    "SELECT COUNT(0) OVER (PARTITION BY 1 + 0) FROM literal_windows",
@@ -290,9 +290,9 @@ ORDER BY id;`,
 			{
 				Query: "SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS rn, (SELECT SUM(t2.c1) FROM window_correlated t2 WHERE t2.c0 = t.c0) AS s FROM window_correlated t ORDER BY id",
 				Expected: []sql.Row{
-					{1, int64(1), float64(300)},
-					{2, int64(2), float64(300)},
-					{3, int64(3), float64(300)},
+					{1, int64(1), "300"},
+					{2, int64(2), "300"},
+					{3, int64(3), "300"},
 				},
 			},
 		},
@@ -1130,8 +1130,8 @@ ORDER BY id;`,
 			SUM(v) OVER (PARTITION BY g ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
 			FROM distinct_window_frames ORDER BY id`,
 		Expected: []sql.Row{
-			{1, float64(30), float64(10)},
-			{2, float64(30), float64(30)},
+			{1, "30", "10"},
+			{2, "30", "30"},
 		},
 	},
 	{
@@ -1151,7 +1151,7 @@ ORDER BY id;`,
 			) AS wf
 			FROM window_correlated_order t
 			ORDER BY t.id`,
-		Expected: []sql.Row{{1, float64(10)}, {2, float64(30)}},
+		Expected: []sql.Row{{1, "10"}, {2, "30"}},
 	},
 	{
 		// https://github.com/dolthub/dolt/issues/11392
@@ -1207,7 +1207,7 @@ ORDER BY id;`,
 			) AS running_v
 			FROM t
 			ORDER BY id`,
-		Expected: []sql.Row{{1, float64(30), float64(10)}, {2, float64(30), float64(30)}},
+		Expected: []sql.Row{{1, "30", "10"}, {2, "30", "30"}},
 	},
 	{
 		Name:    "LIKE escape characters in window expressions",
@@ -1291,21 +1291,21 @@ ORDER BY id;`,
 		Assertions: []ScriptTestAssertion{
 			{
 				Query:    "SELECT SUM(b) OVER (PARTITION BY a ORDER BY b) FROM t ORDER BY 1;",
-				Expected: []sql.Row{{float64(1)}, {float64(3)}, {float64(4)}, {float64(6)}, {float64(9)}, {float64(15)}},
+				Expected: []sql.Row{{"1"}, {"3"}, {"4"}, {"6"}, {"9"}, {"15"}},
 			},
 			{
 				Query:    "SELECT SUM(b) OVER (ORDER BY b) FROM t ORDER BY 1;",
-				Expected: []sql.Row{{float64(1)}, {float64(3)}, {float64(6)}, {float64(10)}, {float64(15)}, {float64(21)}},
+				Expected: []sql.Row{{"1"}, {"3"}, {"6"}, {"10"}, {"15"}, {"21"}},
 			},
 			{
 				Query: "SELECT SUM(b) OVER (PARTITION BY a ORDER BY b), SUM(b) OVER (ORDER BY b) FROM t ORDER BY 1;",
 				Expected: []sql.Row{
-					{float64(1), float64(1)},
-					{float64(3), float64(3)},
-					{float64(4), float64(10)},
-					{float64(6), float64(6)},
-					{float64(9), float64(15)},
-					{float64(15), float64(21)},
+					{"1", "1"},
+					{"3", "3"},
+					{"4", "10"},
+					{"6", "6"},
+					{"9", "15"},
+					{"15", "21"},
 				},
 			},
 		},
@@ -1628,36 +1628,36 @@ ORDER BY id;`,
 			{
 				Query: "SELECT grp, ord, SUM(SUM(val)) OVER (PARTITION BY grp ORDER BY ord ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_sum FROM grouped_window_values GROUP BY grp, ord ORDER BY grp, ord",
 				Expected: []sql.Row{
-					{1, 1, float64(15)},
-					{1, 2, float64(22)},
-					{2, 1, float64(3)},
-					{2, 2, float64(7)},
+					{1, 1, "15"},
+					{1, 2, "22"},
+					{2, 1, "3"},
+					{2, 2, "7"},
 				},
 			},
 			{
 				Query: "SELECT grp, ord, SUM(SUM(val)) OVER (PARTITION BY grp ORDER BY ord ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_sum, ROW_NUMBER() OVER (PARTITION BY grp ORDER BY ord) AS row_num FROM grouped_window_values GROUP BY grp, ord ORDER BY grp, ord",
 				Expected: []sql.Row{
-					{1, 1, float64(15), int64(1)},
-					{1, 2, float64(22), int64(2)},
-					{2, 1, float64(3), int64(1)},
-					{2, 2, float64(7), int64(2)},
+					{1, 1, "15", int64(1)},
+					{1, 2, "22", int64(2)},
+					{2, 1, "3", int64(1)},
+					{2, 2, "7", int64(2)},
 				},
 			},
 			{
 				Query: "SELECT grp, ord, ROW_NUMBER() OVER (PARTITION BY grp ORDER BY ord) AS row_num, SUM(SUM(val)) OVER (PARTITION BY grp ORDER BY ord ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_sum FROM grouped_window_values GROUP BY grp, ord ORDER BY grp, ord",
 				Expected: []sql.Row{
-					{1, 1, int64(1), float64(15)},
-					{1, 2, int64(2), float64(22)},
-					{2, 1, int64(1), float64(3)},
-					{2, 2, int64(2), float64(7)},
+					{1, 1, int64(1), "15"},
+					{1, 2, int64(2), "22"},
+					{2, 1, int64(1), "3"},
+					{2, 2, int64(2), "7"},
 				},
 			},
 			{
 				Query: "SELECT grp, ord, SUM(SUM(val)) OVER (PARTITION BY grp ORDER BY ord ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_sum FROM grouped_window_values GROUP BY grp, ord HAVING SUM(val) <> 3 ORDER BY grp, ord",
 				Expected: []sql.Row{
-					{1, 1, float64(15)},
-					{1, 2, float64(22)},
-					{2, 2, float64(4)},
+					{1, 1, "15"},
+					{1, 2, "22"},
+					{2, 2, "4"},
 				},
 			},
 		},
@@ -1701,37 +1701,37 @@ ORDER BY id;`,
 				Query: `SELECT id, SUM(v) OVER (
 					ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW
 				) FROM window_sum_intervals ORDER BY id`,
-				Expected: []sql.Row{{1, nil}, {2, nil}, {3, float64(5)}, {4, nil}, {5, nil}},
+				Expected: []sql.Row{{1, nil}, {2, nil}, {3, "5"}, {4, nil}, {5, nil}},
 			},
 			{
 				Query: `SELECT id, SUM(v) OVER (
 					ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW
 				) FROM window_sum_intervals ORDER BY id`,
-				Expected: []sql.Row{{1, nil}, {2, nil}, {3, float64(5)}, {4, float64(5)}, {5, nil}},
+				Expected: []sql.Row{{1, nil}, {2, nil}, {3, "5"}, {4, "5"}, {5, nil}},
 			},
 			{
 				Query: `SELECT id, SUM(v) OVER (
 					ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING
 				) FROM window_sum_intervals ORDER BY id`,
-				Expected: []sql.Row{{1, nil}, {2, float64(5)}, {3, float64(5)}, {4, nil}, {5, nil}},
+				Expected: []sql.Row{{1, nil}, {2, "5"}, {3, "5"}, {4, nil}, {5, nil}},
 			},
 			{
 				Query: `SELECT id, SUM(v) OVER (
 					ORDER BY id ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING
 				) FROM window_sum_intervals ORDER BY id`,
-				Expected: []sql.Row{{1, float64(5)}, {2, float64(5)}, {3, nil}, {4, nil}, {5, nil}},
+				Expected: []sql.Row{{1, "5"}, {2, "5"}, {3, nil}, {4, nil}, {5, nil}},
 			},
 			{
 				Query: `SELECT id, SUM(v) OVER (
 					ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
 				) FROM window_sum_intervals ORDER BY id`,
-				Expected: []sql.Row{{1, float64(5)}, {2, float64(5)}, {3, float64(5)}, {4, float64(5)}, {5, float64(5)}},
+				Expected: []sql.Row{{1, "5"}, {2, "5"}, {3, "5"}, {4, "5"}, {5, "5"}},
 			},
 			{
 				Query: `SELECT id, SUM(v) OVER (
 					PARTITION BY g ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
 				) FROM window_sum_intervals ORDER BY id`,
-				Expected: []sql.Row{{1, nil}, {2, nil}, {3, float64(5)}, {4, float64(5)}, {5, nil}},
+				Expected: []sql.Row{{1, nil}, {2, nil}, {3, "5"}, {4, "5"}, {5, nil}},
 			},
 		},
 	},
@@ -1754,7 +1754,7 @@ ORDER BY id;`,
 				Expected: []sql.Row{
 					{1, nil, nil, nil, nil, nil, nil, nil, int64(0)},
 					{2, nil, nil, nil, nil, nil, nil, nil, int64(0)},
-					{3, float64(5), 5, 5, float64(0), nil, float64(0), nil, int64(1)},
+					{3, "5.0000", 5, 5, float64(0), nil, float64(0), nil, int64(1)},
 					{4, nil, nil, nil, nil, nil, nil, nil, int64(0)},
 					{5, nil, nil, nil, nil, nil, nil, nil, int64(0)},
 				},
@@ -1770,8 +1770,8 @@ ORDER BY id;`,
 				Expected: []sql.Row{
 					{1, nil, nil, nil, nil, nil, nil, nil, int64(0)},
 					{2, nil, nil, nil, nil, nil, nil, nil, int64(0)},
-					{3, float64(5), 5, 5, float64(0), nil, float64(0), nil, int64(1)},
-					{4, float64(5), 5, 5, float64(0), nil, float64(0), nil, int64(1)},
+					{3, "5.0000", 5, 5, float64(0), nil, float64(0), nil, int64(1)},
+					{4, "5.0000", 5, 5, float64(0), nil, float64(0), nil, int64(1)},
 					{5, nil, nil, nil, nil, nil, nil, nil, int64(0)},
 				},
 			},
@@ -1785,8 +1785,8 @@ ORDER BY id;`,
 					ORDER BY id`,
 				Expected: []sql.Row{
 					{1, nil, nil, nil, nil, nil, nil, nil, int64(0)},
-					{2, float64(5), 5, 5, float64(0), nil, float64(0), nil, int64(1)},
-					{3, float64(5), 5, 5, float64(0), nil, float64(0), nil, int64(1)},
+					{2, "5.0000", 5, 5, float64(0), nil, float64(0), nil, int64(1)},
+					{3, "5.0000", 5, 5, float64(0), nil, float64(0), nil, int64(1)},
 					{4, nil, nil, nil, nil, nil, nil, nil, int64(0)},
 					{5, nil, nil, nil, nil, nil, nil, nil, int64(0)},
 				},
@@ -1806,17 +1806,17 @@ ORDER BY id;`,
 			{
 				Query: "SELECT id, SUM(id)  OVER (ORDER BY name) FROM t ORDER BY id;",
 				Expected: []sql.Row{
-					{1, 6.0},
-					{2, 6.0},
-					{3, 6.0},
+					{1, "6"},
+					{2, "6"},
+					{3, "6"},
 				},
 			},
 			{
 				Query: "SELECT id, AVG(id)  OVER (ORDER BY name) FROM t ORDER BY id;",
 				Expected: []sql.Row{
-					{1, 2.0},
-					{2, 2.0},
-					{3, 2.0},
+					{1, "2.0000"},
+					{2, "2.0000"},
+					{3, "2.0000"},
 				},
 			},
 			{
@@ -2154,22 +2154,22 @@ FROM (
 			{
 				Query: "SELECT t.id, SUM(t.`a.b`) OVER () AS s1, SUM(`t.a`.b) OVER () AS s2 FROM t JOIN u AS `t.a` ON t.id = `t.a`.id ORDER BY t.id;",
 				Expected: []sql.Row{
-					{1, float64(20), float64(300)},
-					{2, float64(20), float64(300)},
+					{1, "20", "300"},
+					{2, "20", "300"},
 				},
 			},
 			{
 				Query: "SELECT t.id, SUM(t.id) OVER (PARTITION BY t.`a.b`) AS s1, SUM(t.id) OVER (PARTITION BY `t.a`.b) AS s2 FROM t JOIN u AS `t.a` ON t.id = `t.a`.id ORDER BY t.id;",
 				Expected: []sql.Row{
-					{1, float64(3), float64(1)},
-					{2, float64(3), float64(2)},
+					{1, "3", "1"},
+					{2, "3", "2"},
 				},
 			},
 			{
 				Query: "SELECT t.id, SUM(t.id) OVER (ORDER BY t.`a.b`) AS s1, SUM(t.id) OVER (ORDER BY `t.a`.b) AS s2 FROM t JOIN u AS `t.a` ON t.id = `t.a`.id ORDER BY t.id;",
 				Expected: []sql.Row{
-					{1, float64(3), float64(1)},
-					{2, float64(3), float64(3)},
+					{1, "3", "1"},
+					{2, "3", "3"},
 				},
 			},
 		},
@@ -2211,16 +2211,16 @@ ORDER BY id;`,
 			{
 				Query: "SELECT id, c, COUNT(*) OVER (PARTITION BY c) AS pc, SUM(v) OVER (PARTITION BY c) AS sv FROM t ORDER BY id",
 				Expected: []sql.Row{
-					{int32(1), "a", int64(2), float64(30)},
-					{int32(2), "a", int64(2), float64(30)},
-					{int32(3), "b", int64(1), float64(30)},
+					{int32(1), "a", int64(2), "30"},
+					{int32(2), "a", int64(2), "30"},
+					{int32(3), "b", int64(1), "30"},
 				},
 			},
 			{
 				Query: "SELECT c, COUNT(*), SUM(v) FROM t GROUP BY c ORDER BY c",
 				Expected: []sql.Row{
-					{"a", int64(2), float64(30)},
-					{"b", int64(1), float64(30)},
+					{"a", int64(2), "30"},
+					{"b", int64(1), "30"},
 				},
 			},
 			{
@@ -2259,8 +2259,8 @@ ORDER BY SUM(v) OVER (
            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
          ), id;`,
 				Expected: []sql.Row{
-					{2, int64(0), float64(8)},
-					{1, int64(0), float64(10)},
+					{2, int64(0), "8"},
+					{1, int64(0), "10"},
 				},
 			},
 			{
@@ -2435,68 +2435,68 @@ var WindowRangeFramesScriptTests = []ScriptTest{
 		Assertions: []ScriptTestAssertion{
 			{
 				Query:    `SELECT sum(y) over (partition by z order by x range unbounded preceding) FROM a order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(1)}, {float64(3)}, {float64(3)}, {float64(4)}, {float64(7)}},
+				Expected: []sql.Row{{"0"}, {"1"}, {"3"}, {"3"}, {"4"}, {"7"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by x range current row) FROM a order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(1)}, {float64(2)}, {float64(0)}, {float64(1)}, {float64(3)}},
+				Expected: []sql.Row{{"0"}, {"1"}, {"2"}, {"0"}, {"1"}, {"3"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by x range 2 preceding) FROM a order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(1)}, {float64(3)}, {float64(3)}, {float64(3)}, {float64(4)}},
+				Expected: []sql.Row{{"0"}, {"1"}, {"3"}, {"3"}, {"3"}, {"4"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by x range between current row and 1 following) FROM a order by x`,
-				Expected: []sql.Row{{float64(1)}, {float64(3)}, {float64(2)}, {float64(1)}, {float64(4)}, {float64(3)}},
+				Expected: []sql.Row{{"1"}, {"3"}, {"2"}, {"1"}, {"4"}, {"3"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by x range between 1 preceding and current row) FROM a order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(1)}, {float64(3)}, {float64(2)}, {float64(1)}, {float64(4)}},
+				Expected: []sql.Row{{"0"}, {"1"}, {"3"}, {"2"}, {"1"}, {"4"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by x range between current row and 2 following) FROM a order by x`,
-				Expected: []sql.Row{{float64(3)}, {float64(3)}, {float64(3)}, {float64(4)}, {float64(4)}, {float64(3)}},
+				Expected: []sql.Row{{"3"}, {"3"}, {"3"}, {"4"}, {"4"}, {"3"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by x range between current row and current row) FROM a order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(1)}, {float64(2)}, {float64(0)}, {float64(1)}, {float64(3)}},
+				Expected: []sql.Row{{"0"}, {"1"}, {"2"}, {"0"}, {"1"}, {"3"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by x range between current row and unbounded following) FROM a order by x`,
-				Expected: []sql.Row{{float64(7)}, {float64(7)}, {float64(6)}, {float64(4)}, {float64(4)}, {float64(3)}},
+				Expected: []sql.Row{{"7"}, {"7"}, {"6"}, {"4"}, {"4"}, {"3"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by x range between 1 preceding and 1 following) FROM a order by x`,
-				Expected: []sql.Row{{float64(1)}, {float64(3)}, {float64(3)}, {float64(3)}, {float64(4)}, {float64(4)}},
+				Expected: []sql.Row{{"1"}, {"3"}, {"3"}, {"3"}, {"4"}, {"4"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by x range between 1 preceding and unbounded following) FROM a order by x`,
-				Expected: []sql.Row{{float64(7)}, {float64(7)}, {float64(7)}, {float64(6)}, {float64(4)}, {float64(4)}},
+				Expected: []sql.Row{{"7"}, {"7"}, {"7"}, {"6"}, {"4"}, {"4"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by x range between unbounded preceding and unbounded following) FROM a order by x`,
-				Expected: []sql.Row{{float64(7)}, {float64(7)}, {float64(7)}, {float64(7)}, {float64(7)}, {float64(7)}},
+				Expected: []sql.Row{{"7"}, {"7"}, {"7"}, {"7"}, {"7"}, {"7"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by x range between 2 preceding and 1 preceding) FROM a order by x`,
-				Expected: []sql.Row{{nil}, {float64(0)}, {float64(1)}, {float64(3)}, {float64(2)}, {float64(1)}},
+				Expected: []sql.Row{{nil}, {"0"}, {"1"}, {"3"}, {"2"}, {"1"}},
 			},
 			// range framing without an order by clause
 			{
 				Query:    `SELECT sum(y) over (partition by y range between unbounded preceding and unbounded following) FROM a order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(2)}, {float64(2)}, {float64(0)}, {float64(2)}, {float64(3)}},
+				Expected: []sql.Row{{"0"}, {"2"}, {"2"}, {"0"}, {"2"}, {"3"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by y range between unbounded preceding and current row) FROM a order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(2)}, {float64(2)}, {float64(0)}, {float64(2)}, {float64(3)}},
+				Expected: []sql.Row{{"0"}, {"2"}, {"2"}, {"0"}, {"2"}, {"3"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by y range between current row and unbounded following) FROM a order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(2)}, {float64(2)}, {float64(0)}, {float64(2)}, {float64(3)}},
+				Expected: []sql.Row{{"0"}, {"2"}, {"2"}, {"0"}, {"2"}, {"3"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by y range between current row and current row) FROM a order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(2)}, {float64(2)}, {float64(0)}, {float64(2)}, {float64(3)}},
+				Expected: []sql.Row{{"0"}, {"2"}, {"2"}, {"0"}, {"2"}, {"3"}},
 			},
 		},
 	},
@@ -2517,11 +2517,11 @@ var WindowRangeFramesScriptTests = []ScriptTest{
 					FROM nullable_range_bounds
 					ORDER BY id`,
 				Expected: []sql.Row{
-					{1, nil, float64(30)},
-					{2, nil, float64(30)},
-					{3, 1, float64(30)},
-					{4, 2, float64(70)},
-					{5, 4, float64(50)},
+					{1, nil, "30"},
+					{2, nil, "30"},
+					{3, 1, "30"},
+					{4, 2, "70"},
+					{5, 4, "50"},
 				},
 			},
 			{
@@ -2533,11 +2533,11 @@ var WindowRangeFramesScriptTests = []ScriptTest{
 					FROM nullable_range_bounds
 					ORDER BY id`,
 				Expected: []sql.Row{
-					{1, nil, float64(30)},
-					{2, nil, float64(30)},
-					{3, 1, float64(70)},
-					{4, 2, float64(40)},
-					{5, 4, float64(50)},
+					{1, nil, "30"},
+					{2, nil, "30"},
+					{3, 1, "70"},
+					{4, 2, "40"},
+					{5, 4, "50"},
 				},
 			},
 		},
@@ -2555,31 +2555,31 @@ var WindowRangeFramesScriptTests = []ScriptTest{
 		Assertions: []ScriptTestAssertion{
 			{
 				Query:    `SELECT sum(y) over (partition by z order by date range between interval 2 DAY preceding and interval 1 DAY preceding) FROM b order by x`,
-				Expected: []sql.Row{{nil}, {float64(0)}, {float64(0)}, {float64(0)}, {float64(1)}, {float64(2)}},
+				Expected: []sql.Row{{nil}, {"0"}, {"0"}, {"0"}, {"1"}, {"2"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by date range between interval 1 DAY preceding and interval 1 DAY following) FROM b order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(0)}, {float64(1)}, {float64(2)}, {float64(5)}, {float64(4)}},
+				Expected: []sql.Row{{"0"}, {"0"}, {"1"}, {"2"}, {"5"}, {"4"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by date range between interval 1 DAY following and interval 2 DAY following) FROM b order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(1)}, {float64(2)}, {float64(4)}, {float64(3)}, {nil}},
+				Expected: []sql.Row{{"0"}, {"1"}, {"2"}, {"4"}, {"3"}, {nil}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by date range interval 1 DAY preceding) FROM b order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(0)}, {float64(0)}, {float64(1)}, {float64(2)}, {float64(4)}},
+				Expected: []sql.Row{{"0"}, {"0"}, {"0"}, {"1"}, {"2"}, {"4"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by date range between interval 1 DAY preceding and current row) FROM b order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(0)}, {float64(0)}, {float64(1)}, {float64(2)}, {float64(4)}},
+				Expected: []sql.Row{{"0"}, {"0"}, {"0"}, {"1"}, {"2"}, {"4"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by date range between interval 1 DAY preceding and unbounded following) FROM b order by x`,
-				Expected: []sql.Row{{float64(5)}, {float64(5)}, {float64(5)}, {float64(5)}, {float64(5)}, {float64(4)}},
+				Expected: []sql.Row{{"5"}, {"5"}, {"5"}, {"5"}, {"5"}, {"4"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by date range between unbounded preceding and interval 1 DAY following) FROM b order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(0)}, {float64(1)}, {float64(2)}, {float64(5)}, {float64(5)}},
+				Expected: []sql.Row{{"0"}, {"0"}, {"1"}, {"2"}, {"5"}, {"5"}},
 			},
 		},
 	},
@@ -2593,23 +2593,23 @@ var WindowRangeFramesScriptTests = []ScriptTest{
 		Assertions: []ScriptTestAssertion{
 			{
 				Query:    `SELECT sum(y) over (partition by z order by date range between interval '2' DAY preceding and interval '1' DAY preceding) FROM c order by x`,
-				Expected: []sql.Row{{nil}, {nil}, {nil}, {float64(0)}, {float64(1)}, {float64(1)}, {nil}, {nil}, {float64(1)}, {float64(1)}},
+				Expected: []sql.Row{{nil}, {nil}, {nil}, {"0"}, {"1"}, {"1"}, {nil}, {nil}, {"1"}, {"1"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by date range between interval '1' DAY preceding and interval '1' DAY following) FROM c order by x`,
-				Expected: []sql.Row{{float64(1)}, {float64(1)}, {float64(1)}, {float64(1)}, {float64(4)}, {float64(4)}, {float64(5)}, {float64(5)}, {float64(5)}, {float64(5)}},
+				Expected: []sql.Row{{"1"}, {"1"}, {"1"}, {"1"}, {"4"}, {"4"}, {"5"}, {"5"}, {"5"}, {"5"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by date range between interval '1' DAY preceding and current row) FROM c order by x`,
-				Expected: []sql.Row{{float64(0)}, {float64(0)}, {float64(0)}, {float64(1)}, {float64(1)}, {float64(4)}, {float64(1)}, {float64(1)}, {float64(5)}, {float64(5)}},
+				Expected: []sql.Row{{"0"}, {"0"}, {"0"}, {"1"}, {"1"}, {"4"}, {"1"}, {"1"}, {"5"}, {"5"}},
 			},
 			{
 				Query:    `SELECT avg(y) over (partition by z order by date range between interval '1' DAY preceding and unbounded following) FROM c order by x`,
-				Expected: []sql.Row{{float64(1)}, {float64(1)}, {float64(1)}, {float64(1)}, {float64(3) / float64(2)}, {float64(3) / float64(2)}, {float64(5) / float64(4)}, {float64(5) / float64(4)}, {float64(5) / float64(4)}, {float64(5) / float64(4)}},
+				Expected: []sql.Row{{"1.0000"}, {"1.0000"}, {"1.0000"}, {"1.0000"}, {"1.5000"}, {"1.5000"}, {"1.2500"}, {"1.2500"}, {"1.2500"}, {"1.2500"}},
 			},
 			{
 				Query:    `SELECT sum(y) over (partition by z order by date range between unbounded preceding and interval '1' DAY following) FROM c order by x`,
-				Expected: []sql.Row{{float64(1)}, {float64(1)}, {float64(1)}, {float64(1)}, {float64(5)}, {float64(5)}, {float64(10)}, {float64(10)}, {float64(10)}, {float64(10)}},
+				Expected: []sql.Row{{"1"}, {"1"}, {"1"}, {"1"}, {"5"}, {"5"}, {"10"}, {"10"}, {"10"}, {"10"}},
 			},
 			{
 				Query:    `SELECT count(y) over (partition by z order by date range between interval '1' DAY following and interval '2' DAY following) FROM c order by x`,
@@ -2621,7 +2621,7 @@ var WindowRangeFramesScriptTests = []ScriptTest{
 			},
 			{
 				Query:    "SELECT sum(y) over (partition by z order by date range interval 'e' DAY preceding) FROM c order by x",
-				Expected: []sql.Row{{float64(0)}, {float64(0)}, {float64(0)}, {float64(1)}, {float64(1)}, {float64(3)}, {float64(1)}, {float64(1)}, {float64(4)}, {float64(4)}},
+				Expected: []sql.Row{{"0"}, {"0"}, {"0"}, {"1"}, {"1"}, {"3"}, {"1"}, {"1"}, {"4"}, {"4"}},
 			},
 			{
 				Query:       "SELECT sum(y) over (partition by z range between unbounded preceding and interval '1' DAY following) FROM c order by x",
@@ -2642,7 +2642,7 @@ var WindowRangeFramesScriptTests = []ScriptTest{
 		Assertions: []ScriptTestAssertion{
 			{
 				Query:    `SELECT sum(v) over (partition by g order by s range between current row and 1 following) FROM d order by id`,
-				Expected: []sql.Row{{float64(10)}, {float64(20)}},
+				Expected: []sql.Row{{"10"}, {"20"}},
 			},
 		},
 	},
@@ -2664,9 +2664,9 @@ var WindowRangeFramesScriptTests = []ScriptTest{
 FROM t
 ORDER BY id;`,
 				Expected: []sql.Row{
-					{1, float64(30)},
-					{2, float64(30)},
-					{3, float64(30)},
+					{1, "30"},
+					{2, "30"},
+					{3, "30"},
 				},
 			},
 		},
@@ -2680,21 +2680,21 @@ ORDER BY id;`,
 		Assertions: []ScriptTestAssertion{
 			{
 				Query:    "SELECT SUM(b) OVER (PARTITION BY a) FROM t ORDER BY 1;",
-				Expected: []sql.Row{{float64(6)}, {float64(6)}, {float64(6)}, {float64(15)}, {float64(15)}, {float64(15)}},
+				Expected: []sql.Row{{"6"}, {"6"}, {"6"}, {"15"}, {"15"}, {"15"}},
 			},
 			{
 				Query:    "SELECT SUM(b) OVER () FROM t ORDER BY 1;",
-				Expected: []sql.Row{{float64(21)}, {float64(21)}, {float64(21)}, {float64(21)}, {float64(21)}, {float64(21)}},
+				Expected: []sql.Row{{"21"}, {"21"}, {"21"}, {"21"}, {"21"}, {"21"}},
 			},
 			{
 				Query: "SELECT SUM(b) OVER (PARTITION BY a), SUM(b) OVER () FROM t;",
 				Expected: []sql.Row{
-					{float64(6), float64(21)},
-					{float64(6), float64(21)},
-					{float64(6), float64(21)},
-					{float64(15), float64(21)},
-					{float64(15), float64(21)},
-					{float64(15), float64(21)},
+					{"6", "21"},
+					{"6", "21"},
+					{"6", "21"},
+					{"15", "21"},
+					{"15", "21"},
+					{"15", "21"},
 				},
 			},
 		},

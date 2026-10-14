@@ -47,8 +47,8 @@ func TestWindowPartitionIter(t *testing.T) {
 				},
 			),
 			Expected: []sql.Row{
-				{"forest", "leaf", float64(27)},
-				{"desert", "sand", float64(23)},
+				{"forest", "leaf", types.DecimalFromInt64(27)},
+				{"desert", "sand", types.DecimalFromInt64(23)},
 			},
 		},
 		{
@@ -64,15 +64,15 @@ func TestWindowPartitionIter(t *testing.T) {
 					},
 				}),
 			Expected: []sql.Row{
-				{"forest", "wildflower", float64(27)},
-				{"forest", "wildflower", float64(27)},
-				{"forest", "wildflower", float64(27)},
-				{"forest", "wildflower", float64(27)},
-				{"forest", "wildflower", float64(27)},
-				{"desert", "mummy", float64(23)},
-				{"desert", "mummy", float64(23)},
-				{"desert", "mummy", float64(23)},
-				{"desert", "mummy", float64(23)},
+				{"forest", "wildflower", types.DecimalFromInt64(27)},
+				{"forest", "wildflower", types.DecimalFromInt64(27)},
+				{"forest", "wildflower", types.DecimalFromInt64(27)},
+				{"forest", "wildflower", types.DecimalFromInt64(27)},
+				{"forest", "wildflower", types.DecimalFromInt64(27)},
+				{"desert", "mummy", types.DecimalFromInt64(23)},
+				{"desert", "mummy", types.DecimalFromInt64(23)},
+				{"desert", "mummy", types.DecimalFromInt64(23)},
+				{"desert", "mummy", types.DecimalFromInt64(23)},
 			},
 		},
 	}
@@ -243,8 +243,8 @@ func TestWindowPartition_MaterializeOutput(t *testing.T) {
 		output, err := i.materializeOutput(ctx)
 		require.NoError(t, err)
 		expOutput := sql.WindowBuffer{
-			{float64(23)},
-			{float64(27)},
+			{types.DecimalFromInt64(23)},
+			{types.DecimalFromInt64(27)},
 		}
 		require.Equal(t, expOutput, output)
 	})

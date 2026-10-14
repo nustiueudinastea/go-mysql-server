@@ -815,7 +815,7 @@ var QueryTests = []QueryTest{
 	{
 		Query: "WITH cte AS (SELECT * FROM xy) SELECT *, (SELECT SUM(x) FROM cte) AS xy FROM cte",
 		Expected: []sql.Row{
-			{0, 2, float64(6)}, {1, 0, float64(6)}, {2, 1, float64(6)}, {3, 3, float64(6)},
+			{0, 2, "6"}, {1, 0, "6"}, {2, 1, "6"}, {3, 3, "6"},
 		},
 	},
 	{
@@ -842,7 +842,7 @@ var QueryTests = []QueryTest{
 	},
 	{
 		Query:    "select 1 as x, AVG(x) from xy group by (y) having AVG(x) > 0",
-		Expected: []sql.Row{{1, float64(1)}, {1, float64(2)}, {1, float64(3)}},
+		Expected: []sql.Row{{1, "1.0000"}, {1, "2.0000"}, {1, "3.0000"}},
 	},
 	{
 		Query:    "select y as x from xy group by (y) having AVG(x) > 0",
@@ -1009,11 +1009,11 @@ var QueryTests = []QueryTest{
 	},
 	{
 		Query:    "SELECT SUM(i), i FROM mytable GROUP BY i ORDER BY 1+SUM(i) ASC",
-		Expected: []sql.Row{{float64(1), 1}, {float64(2), 2}, {float64(3), 3}},
+		Expected: []sql.Row{{"1", 1}, {"2", 2}, {"3", 3}},
 	},
 	{
 		Query:    "SELECT SUM(i) as sum, i FROM mytable GROUP BY i ORDER BY 1+SUM(i) ASC",
-		Expected: []sql.Row{{float64(1), 1}, {float64(2), 2}, {float64(3), 3}},
+		Expected: []sql.Row{{"1", 1}, {"2", 2}, {"3", 3}},
 	},
 	{
 		Query: `SELECT * FROM three_pk WHERE pk1=1 ORDER BY pk2`,
@@ -1062,11 +1062,11 @@ var QueryTests = []QueryTest{
 	},
 	{
 		Query:    "select sum(1)",
-		Expected: []sql.Row{{float64(1)}},
+		Expected: []sql.Row{{"1"}},
 	},
 	{
 		Query:    "select sum(100)",
-		Expected: []sql.Row{{float64(100)}},
+		Expected: []sql.Row{{"100"}},
 	},
 	{
 		Query:    "select count(*) from mytable",
@@ -1110,7 +1110,7 @@ var QueryTests = []QueryTest{
 	},
 	{
 		Query:    "select sum(10) from mytable",
-		Expected: []sql.Row{{float64(30)}},
+		Expected: []sql.Row{{"30"}},
 	},
 	{
 		Query:    "select sum(1) from emptytable",
@@ -1371,29 +1371,29 @@ SELECT * FROM cte WHERE  d = 2;`,
 	{
 		Query: "SELECT pk DIV 2, SUM(c3) FROM one_pk GROUP BY 1 ORDER BY 1",
 		Expected: []sql.Row{
-			{int64(0), float64(14)},
-			{int64(1), float64(54)},
+			{int64(0), "14"},
+			{int64(1), "54"},
 		},
 	},
 	{
 		Query: "SELECT pk DIV 2, SUM(c3) as sum FROM one_pk GROUP BY 1 ORDER BY 1",
 		Expected: []sql.Row{
-			{int64(0), float64(14)},
-			{int64(1), float64(54)},
+			{int64(0), "14"},
+			{int64(1), "54"},
 		},
 	},
 	{
 		Query: "SELECT pk DIV 2, SUM(c3) + sum(c3) as sum FROM one_pk GROUP BY 1 ORDER BY 1",
 		Expected: []sql.Row{
-			{int64(0), float64(28)},
-			{int64(1), float64(108)},
+			{int64(0), "28"},
+			{int64(1), "108"},
 		},
 	},
 	{
 		Query: "SELECT pk DIV 2, SUM(c3) + min(c3) as sum_and_min FROM one_pk GROUP BY 1 ORDER BY 1",
 		Expected: []sql.Row{
-			{int64(0), float64(16)},
-			{int64(1), float64(76)},
+			{int64(0), "16"},
+			{int64(1), "76"},
 		},
 		ExpectedColumns: sql.Schema{
 			{
@@ -1402,15 +1402,15 @@ SELECT * FROM cte WHERE  d = 2;`,
 			},
 			{
 				Name: "sum_and_min",
-				Type: types.Float64,
+				Type: types.MustCreateDecimalType(27, 0),
 			},
 		},
 	},
 	{
 		Query: "SELECT pk DIV 2, SUM(`c3`) +    min( c3 ) FROM one_pk GROUP BY 1 ORDER BY 1",
 		Expected: []sql.Row{
-			{int64(0), float64(16)},
-			{int64(1), float64(76)},
+			{int64(0), "16"},
+			{int64(1), "76"},
 		},
 		ExpectedColumns: sql.Schema{
 			{
@@ -1419,15 +1419,15 @@ SELECT * FROM cte WHERE  d = 2;`,
 			},
 			{
 				Name: "SUM(`c3`) +    min( c3 )",
-				Type: types.Float64,
+				Type: types.MustCreateDecimalType(27, 0),
 			},
 		},
 	},
 	{
 		Query: "SELECT pk1, SUM(c1) FROM two_pk GROUP BY pk1 ORDER BY pk1;",
 		Expected: []sql.Row{
-			{0, 10.0},
-			{1, 50.0},
+			{0, "10"},
+			{1, "50"},
 		},
 	},
 	{
@@ -1436,7 +1436,7 @@ SELECT * FROM cte WHERE  d = 2;`,
 	},
 	{
 		Query:    "SELECT pk1, SUM(c1) FROM two_pk WHERE pk1 = 0",
-		Expected: []sql.Row{{0, 10.0}},
+		Expected: []sql.Row{{0, "10"}},
 	},
 	{
 		Query:            "SELECT i FROM mytable;",
@@ -1484,9 +1484,9 @@ SELECT * FROM cte WHERE  d = 2;`,
 	{
 		Query: "SELECT floor(i), avg(char_length(s)) FROM mytable mt group by 1 ORDER BY floor(i) DESC",
 		Expected: []sql.Row{
-			{3, 9.0},
-			{2, 10.0},
-			{1, 9.0},
+			{3, "9.0000"},
+			{2, "10.0000"},
+			{1, "9.0000"},
 		},
 	},
 	{
@@ -1943,9 +1943,9 @@ SELECT * FROM cte WHERE  d = 2;`,
 			(values row(1,1), row(1,3), row(2,2), row(2,5), row(3,9)) a
 			group by 1 order by 1`,
 		Expected: []sql.Row{
-			{1, 4.0},
-			{2, 7.0},
-			{3, 9.0},
+			{1, "4"},
+			{2, "7"},
+			{3, "9"},
 		},
 	},
 	{
@@ -1953,16 +1953,16 @@ SELECT * FROM cte WHERE  d = 2;`,
 			(values row(1,1), row(1,3), row(2,2), row(2,5), row(3,9)) a (b,c)
 			group by 1 order by 1`,
 		Expected: []sql.Row{
-			{1, 4.0},
-			{2, 7.0},
-			{3, 9.0},
+			{1, "4"},
+			{2, "7"},
+			{3, "9"},
 		},
 	},
 	{
 		Query: `SELECT i, sum(i) FROM mytable group by 1 having avg(i) > 1 order by 1`,
 		Expected: []sql.Row{
-			{2, 2.0},
-			{3, 3.0},
+			{2, "2"},
+			{3, "3"},
 		},
 	},
 	{
@@ -2164,8 +2164,8 @@ SELECT * FROM cte WHERE  d = 2;`,
 	{
 		Query: "WITH mt (s,i) as (select char_length(s), sum(i) FROM mytable group by 1) SELECT s,i FROM mt order by 1",
 		Expected: []sql.Row{
-			{9, 4.0},
-			{10, 2.0},
+			{9, "4"},
+			{10, "2"},
 		},
 	},
 	{
@@ -2360,7 +2360,7 @@ SELECT * FROM cte WHERE  d = 2;`,
 	{
 		Query: "with recursive t (n) as (select (1) from dual union all select n + 1 from t where n < 10) select sum(n) from t;",
 		Expected: []sql.Row{
-			{float64(55)},
+			{"55"},
 		},
 	},
 	{
@@ -2450,7 +2450,7 @@ SELECT * FROM cte WHERE  d = 2;`,
 	{
 		Query: "with recursive t (n) as (select (1) from dual union all select (2) from dual) select sum(n) from t;",
 		Expected: []sql.Row{
-			{float64(3)},
+			{"3"},
 		},
 	},
 	{
@@ -2466,13 +2466,13 @@ SELECT * FROM cte WHERE  d = 2;`,
 			FROM included_parts
 			GROUP BY sub_part`,
 		Expected: []sql.Row{
-			{"crust", float64(1)},
-			{"filling", float64(2)},
-			{"flour", float64(20)},
-			{"butter", float64(18)},
-			{"salt", float64(18)},
-			{"sugar", float64(7)},
-			{"fruit", float64(9)},
+			{"crust", "1"},
+			{"filling", "2"},
+			{"flour", "20"},
+			{"butter", "18"},
+			{"salt", "18"},
+			{"sugar", "7"},
+			{"fruit", "9"},
 		},
 	},
 	{
@@ -2488,13 +2488,13 @@ SELECT * FROM cte WHERE  d = 2;`,
 			FROM included_parts
 			GROUP BY sub_part`,
 		Expected: []sql.Row{
-			{"crust", float64(1)},
-			{"filling", float64(2)},
-			{"flour", float64(20)},
-			{"butter", float64(18)},
-			{"salt", float64(18)},
-			{"sugar", float64(7)},
-			{"fruit", float64(9)},
+			{"crust", "1"},
+			{"filling", "2"},
+			{"flour", "20"},
+			{"butter", "18"},
+			{"salt", "18"},
+			{"sugar", "7"},
+			{"fruit", "9"},
 		},
 	},
 	{
@@ -2510,13 +2510,13 @@ SELECT * FROM cte WHERE  d = 2;`,
 			FROM included_parts
 			GROUP BY sub_part`,
 		Expected: []sql.Row{
-			{"crust", float64(1)},
-			{"filling", float64(2)},
-			{"flour", float64(20)},
-			{"butter", float64(18)},
-			{"salt", float64(18)},
-			{"sugar", float64(7)},
-			{"fruit", float64(9)},
+			{"crust", "1"},
+			{"filling", "2"},
+			{"flour", "20"},
+			{"butter", "18"},
+			{"salt", "18"},
+			{"sugar", "7"},
+			{"fruit", "9"},
 		},
 	},
 	{
@@ -2540,7 +2540,7 @@ SELECT * FROM cte WHERE  d = 2;`,
 	{
 		Query: "with recursive t (n) as (select sum(1) from dual union all select n+1 from t where n < 10) select sum(n) from t;",
 		Expected: []sql.Row{
-			{float64(55)},
+			{"55"},
 		},
 	},
 	{
@@ -4659,14 +4659,14 @@ SELECT * FROM cte WHERE  d = 2;`,
 					   percent_rank() over(partition by v2 order by pk)
 				from one_pk_three_idx order by pk`,
 		Expected: []sql.Row{
-			{0, 8, float64(0), float64(0)},
-			{1, 7, float64(0), float64(1) / float64(3)},
-			{2, 6, float64(0), float64(0)},
-			{3, 5, float64(0), float64(0)},
-			{4, 4, float64(1), float64(2) / float64(3)},
-			{5, 3, float64(3), float64(1)},
-			{6, 2, float64(3), float64(0)},
-			{7, 1, float64(4), float64(0)},
+			{0, 8, "0", float64(0)},
+			{1, 7, "0", float64(1) / float64(3)},
+			{2, 6, "0", float64(0)},
+			{3, 5, "0", float64(0)},
+			{4, 4, "1", float64(2) / float64(3)},
+			{5, 3, "3", float64(1)},
+			{6, 2, "3", float64(0)},
+			{7, 1, "4", float64(0)},
 		},
 	},
 	{
@@ -4696,14 +4696,14 @@ SELECT * FROM cte WHERE  d = 2;`,
 					   avg(v2) over (partition by v1 order by pk)
 				from one_pk_three_idx order by pk`,
 		Expected: []sql.Row{
-			{0, 7, 1, 1, 3, float64(0)},
-			{1, 7, 2, 2, 3, float64(0)},
-			{2, 7, 3, 3, 3, float64(1) / float64(3)},
-			{3, 7, 4, 4, 3, float64(3) / float64(4)},
-			{4, 7, 5, 1, 4, float64(0)},
-			{5, 7, 6, 1, 5, float64(0)},
-			{6, 7, 7, 1, 6, float64(3)},
-			{7, 7, nil, 1, 7, float64(4)},
+			{0, 7, 1, 1, 3, "0"},
+			{1, 7, 2, 2, 3, "0"},
+			{2, 7, 3, 3, 3, "0.3333"},
+			{3, 7, 4, 4, 3, "0.7500"},
+			{4, 7, 5, 1, 4, "0"},
+			{5, 7, 6, 1, 5, "0"},
+			{6, 7, 7, 1, 6, "3.0000"},
+			{7, 7, nil, 1, 7, "4.0000"},
 		},
 	},
 	{
@@ -4918,7 +4918,7 @@ SELECT * FROM cte WHERE  d = 2;`,
 	},
 	{
 		Query:    `SELECT SUM(i) FROM mytable`,
-		Expected: []sql.Row{{float64(6)}},
+		Expected: []sql.Row{{"6"}},
 	},
 	{
 		Query: `SELECT i AS foo FROM mytable ORDER BY i DESC`,
@@ -4983,41 +4983,41 @@ SELECT * FROM cte WHERE  d = 2;`,
 	{
 		Query: "SELECT SUM(i) + 1, i FROM mytable GROUP BY i ORDER BY i",
 		Expected: []sql.Row{
-			{float64(2), int64(1)},
-			{float64(3), int64(2)},
-			{float64(4), int64(3)},
+			{"2", int64(1)},
+			{"3", int64(2)},
+			{"4", int64(3)},
 		},
 	},
 	{
 		Query: "SELECT SUM(i) as sum, i FROM mytable GROUP BY i ORDER BY sum ASC",
 		Expected: []sql.Row{
-			{float64(1), int64(1)},
-			{float64(2), int64(2)},
-			{float64(3), int64(3)},
+			{"1", int64(1)},
+			{"2", int64(2)},
+			{"3", int64(3)},
 		},
 	},
 	{
 		Query: "SELECT i, SUM(i) FROM mytable GROUP BY i ORDER BY sum(i) DESC",
 		Expected: []sql.Row{
-			{int64(3), float64(3)},
-			{int64(2), float64(2)},
-			{int64(1), float64(1)},
+			{int64(3), "3"},
+			{int64(2), "2"},
+			{int64(1), "1"},
 		},
 	},
 	{
 		Query: "SELECT i, SUM(i) as b FROM mytable GROUP BY i ORDER BY b DESC",
 		Expected: []sql.Row{
-			{int64(3), float64(3)},
-			{int64(2), float64(2)},
-			{int64(1), float64(1)},
+			{int64(3), "3"},
+			{int64(2), "2"},
+			{int64(1), "1"},
 		},
 	},
 	{
 		Query: "SELECT i, SUM(i) as `sum(i)` FROM mytable GROUP BY i ORDER BY sum(i) DESC",
 		Expected: []sql.Row{
-			{int64(3), float64(3)},
-			{int64(2), float64(2)},
-			{int64(1), float64(1)},
+			{int64(3), "3"},
+			{int64(2), "2"},
+			{int64(1), "1"},
 		},
 	},
 	{
@@ -6149,15 +6149,15 @@ SELECT * FROM cte WHERE  d = 2;`,
 	},
 	{
 		Query:    `SELECT avg(i) FROM mytable GROUP BY i HAVING avg(i) > 1`,
-		Expected: []sql.Row{{float64(2)}, {float64(3)}},
+		Expected: []sql.Row{{"2.0000"}, {"3.0000"}},
 	},
 	{
 		Query:    "SELECT avg(i) as `avg(i)` FROM mytable GROUP BY i HAVING avg(i) > 1",
-		Expected: []sql.Row{{float64(2)}, {float64(3)}},
+		Expected: []sql.Row{{"2.0000"}, {"3.0000"}},
 	},
 	{
 		Query:    "SELECT avg(i) as `AVG(i)` FROM mytable GROUP BY i HAVING AVG(i) > 1",
-		Expected: []sql.Row{{float64(2)}, {float64(3)}},
+		Expected: []sql.Row{{"2.0000"}, {"3.0000"}},
 	},
 	{
 		Query: `SELECT s AS s, COUNT(*) AS count,  AVG(i) AS ` + "`AVG(i)`" + `
@@ -6169,9 +6169,9 @@ SELECT * FROM cte WHERE  d = 2;`,
 		ORDER BY count DESC, s ASC
 		LIMIT 10000`,
 		Expected: []sql.Row{
-			{"first row", int64(1), float64(1)},
-			{"second row", int64(1), float64(2)},
-			{"third row", int64(1), float64(3)},
+			{"first row", int64(1), "1.0000"},
+			{"second row", int64(1), "2.0000"},
+			{"third row", int64(1), "3.0000"},
 		},
 	},
 	{
@@ -6331,7 +6331,7 @@ SELECT * FROM cte WHERE  d = 2;`,
 	},
 	{
 		Query:    `SELECT sum(i) as isum, s FROM mytable GROUP BY i ORDER BY isum ASC LIMIT 0, 200`,
-		Expected: []sql.Row{{1.0, "first row"}, {2.0, "second row"}, {3.0, "third row"}},
+		Expected: []sql.Row{{"1", "first row"}, {"2", "second row"}, {"3", "third row"}},
 	},
 	{
 		Query:    `SELECT (SELECT i FROM mytable ORDER BY i ASC LIMIT 1) AS x`,
@@ -6685,9 +6685,9 @@ SELECT * FROM cte WHERE  d = 2;`,
 						(SELECT min(pk2) FROM two_pk WHERE pk2 IN (SELECT pk2 FROM two_pk WHERE pk2 = pk)) AS equal
 						FROM one_pk ORDER BY pk;`,
 		Expected: []sql.Row{
-			{0, 0.0, 0},
-			{1, 2.0, 1},
-			{2, 2.0, nil},
+			{0, "0", 0},
+			{1, "2", 1},
+			{2, "2", nil},
 			{3, nil, nil},
 		},
 	},
@@ -6697,10 +6697,10 @@ SELECT * FROM cte WHERE  d = 2;`,
 						(SELECT sum(c1) FROM two_pk WHERE pk2 IN (SELECT pk2 FROM two_pk WHERE c1 + 1 < opk.c2)) AS sum2
 					FROM one_pk opk ORDER BY pk`,
 		Expected: []sql.Row{
-			{0, 60.0, nil},
-			{1, 50.0, 20.0},
-			{2, 30.0, 60.0},
-			{3, nil, 60.0},
+			{0, "60", nil},
+			{1, "50", "20"},
+			{2, "30", "60"},
+			{3, nil, "60"},
 		},
 	},
 	{
@@ -8113,7 +8113,7 @@ SELECT * FROM my_cte;`,
 	},
 	{
 		Query:    `SELECT SUM(0) * -1`,
-		Expected: []sql.Row{{0.0}},
+		Expected: []sql.Row{{"-0"}},
 	},
 
 	{
@@ -8168,10 +8168,10 @@ SELECT * FROM ladder;`,
 						(SELECT avg(c1) FROM two_pk WHERE pk2 IN (SELECT pk2 FROM two_pk WHERE c1 < opk.c2)) AS avg
 					FROM one_pk opk ORDER BY pk`,
 		Expected: []sql.Row{
-			{0, nil, 10.0},
-			{1, nil, 15.0},
-			{2, nil, 15.0},
-			{3, nil, 15.0},
+			{0, nil, "10.0000"},
+			{1, nil, "15.0000"},
+			{2, nil, "15.0000"},
+			{3, nil, "15.0000"},
 		},
 	},
 	{
@@ -8179,8 +8179,8 @@ SELECT * FROM ladder;`,
 			(values row(1,1), row(1,3), row(2,2), row(2,5), row(3,9)) a
 			group by 1 having avg(column_1) > 2 order by 1`,
 		Expected: []sql.Row{
-			{2, 7.0},
-			{3, 9.0},
+			{2, "7"},
+			{3, "9"},
 		},
 	},
 	{
@@ -9897,11 +9897,11 @@ from typestable`,
 	// https://github.com/dolthub/dolt/issues/8058
 	{
 		Query:    "SELECT SUM(found) FROM ((SELECT 2 as found FROM dual)) as all_found;",
-		Expected: []sql.Row{{float64(2)}},
+		Expected: []sql.Row{{"2"}},
 	},
 	{
 		Query:    "SELECT SUM(found) FROM (((SELECT 2 as found FROM dual))) as all_found;",
-		Expected: []sql.Row{{float64(2)}},
+		Expected: []sql.Row{{"2"}},
 	},
 	{
 		Query:    "SELECT EXISTS ((SELECT 1));",

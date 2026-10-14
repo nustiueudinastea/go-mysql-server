@@ -2,7 +2,7 @@ unaryAggs:
 - name:     "Avg"
   desc:     "returns the average value of expr in all rows."
   nullable: true
-  retType:  "types.Float64"
+  retType:  "numericAggregateType(ctx, a.Child, true)"
 - name:    "BitAnd"
   sqlName: "bit_and"
   desc:    "returns the bitwise AND of all bits in expr."
@@ -35,7 +35,7 @@ unaryAggs:
 - name:     "Sum"
   desc:     "returns the sum of expr in all rows"
   nullable: false
-  retType:  "types.Float64"
+  retType:  "numericAggregateType(ctx, a.Child, false)"
 - name: "StdDevPop"
   sqlName: "stddev_pop"
   desc: "returns the population standard deviation of expr"

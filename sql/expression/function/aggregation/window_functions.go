@@ -19,6 +19,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/cockroachdb/apd/v3"
+
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/dolthub/go-mysql-server/sql/expression"
 	"github.com/dolthub/go-mysql-server/sql/sorters"
@@ -87,6 +89,7 @@ type SumAgg struct {
 	baseWindowFunction
 	// use prefix sums to quickly calculate arbitrary frame sum within partition
 	prefixSum      []float64
+	decimalSum     []apd.Decimal
 	nullCnt        []int
 	partitionStart int
 	partitionEnd   int
@@ -124,7 +127,11 @@ func (a *SumAgg) StartPartition(ctx *sql.Context, interval sql.WindowInterval, b
 	a.partitionStart, a.partitionEnd = interval.Start, interval.End
 	a.Dispose(ctx)
 	var err error
-	a.prefixSum, a.nullCnt, err = floatPrefixSum(ctx, interval, buf, a.expr)
+	if types.IsDecimal(numericAggregateType(ctx, a.expr, false)) {
+		a.decimalSum, a.nullCnt, err = decimalPrefixSum(ctx, interval, buf, a.expr)
+	} else {
+		a.prefixSum, a.nullCnt, err = floatPrefixSum(ctx, interval, buf, a.expr)
+	}
 	return err
 }
 
@@ -145,6 +152,13 @@ func (a *SumAgg) Compute(ctx *sql.Context, interval sql.WindowInterval, buf sql.
 	// SUM returns NULL when the frame has no non-NULL values.
 	if nullCnt == interval.End-interval.Start {
 		return nil, nil
+	}
+	if a.decimalSum != nil {
+		sum, err := computeDecimalPrefixSum(interval, a.partitionStart, a.decimalSum)
+		if err != nil {
+			return nil, err
+		}
+		return decimalAggregateResult(ctx, a.expr, sum, 0, false)
 	}
 	return computePrefixSum(interval, a.partitionStart, a.prefixSum), nil
 }
@@ -177,6 +191,44 @@ func floatPrefixSum(ctx *sql.Context, interval sql.WindowInterval, buf sql.Windo
 	return sums, nulls, nil
 }
 
+// decimalPrefixSum accumulates exact inputs once per partition without a
+// floating-point conversion. Each prefix owns its coefficient.
+func decimalPrefixSum(ctx *sql.Context, interval sql.WindowInterval, buf sql.WindowBuffer, e sql.Expression) ([]apd.Decimal, []int, error) {
+	sums := make([]apd.Decimal, interval.End-interval.Start)
+	nulls := make([]int, len(sums))
+	sum := NewSumBuffer(e)
+	sum.sum = apd.New(0, 0)
+	nullCount := 0
+	for i := range sums {
+		v, err := e.Eval(ctx, buf[interval.Start+i])
+		if err != nil {
+			return nil, nil, err
+		}
+		if v == nil {
+			nullCount++
+		} else if err = sum.PerformSum(ctx, v); err != nil {
+			return nil, nil, err
+		}
+		sums[i].Set(sum.sum.(*apd.Decimal))
+		nulls[i] = nullCount
+	}
+	return sums, nulls, nil
+}
+
+func computeDecimalPrefixSum(interval sql.WindowInterval, partitionStart int, sums []apd.Decimal) (*apd.Decimal, error) {
+	sum := apd.New(0, 0)
+	start, end := interval.Start-partitionStart-1, interval.End-partitionStart-1
+	if end >= 0 {
+		sum.Set(&sums[end])
+	}
+	if start >= 0 {
+		if _, err := sql.DecimalCtx.Sub(sum, sum, &sums[start]); err != nil {
+			return nil, err
+		}
+	}
+	return sum, nil
+}
+
 func computePrefixSum(interval sql.WindowInterval, partitionStart int, prefixSum []float64) float64 {
 	startIdx := interval.Start - partitionStart - 1
 	endIdx := interval.End - partitionStart - 1
@@ -195,7 +247,8 @@ type AvgAgg struct {
 	baseWindowFunction
 
 	// use prefix sums to quickly calculate arbitrary frame sum within partition
-	prefixSum []float64
+	prefixSum  []float64
+	decimalSum []apd.Decimal
 
 	// exclude nulls in average denominator
 	nullCnt []int
@@ -235,7 +288,11 @@ func (a *AvgAgg) StartPartition(ctx *sql.Context, interval sql.WindowInterval, b
 	a.partitionStart = interval.Start
 	a.partitionEnd = interval.End
 	var err error
-	a.prefixSum, a.nullCnt, err = floatPrefixSum(ctx, interval, buf, a.expr)
+	if types.IsDecimal(numericAggregateType(ctx, a.expr, false)) {
+		a.decimalSum, a.nullCnt, err = decimalPrefixSum(ctx, interval, buf, a.expr)
+	} else {
+		a.prefixSum, a.nullCnt, err = floatPrefixSum(ctx, interval, buf, a.expr)
+	}
 	return err
 }
 
@@ -259,6 +316,13 @@ func (a *AvgAgg) Compute(ctx *sql.Context, interval sql.WindowInterval, buf sql.
 	// AVG returns NULL when the frame has no non-NULL values.
 	if nonNullCnt == 0 {
 		return nil, nil
+	}
+	if a.decimalSum != nil {
+		sum, err := computeDecimalPrefixSum(interval, a.partitionStart, a.decimalSum)
+		if err != nil {
+			return nil, err
+		}
+		return decimalAggregateResult(ctx, a.expr, sum, int64(nonNullCnt), true)
 	}
 	return computePrefixSum(interval, a.partitionStart, a.prefixSum) / float64(nonNullCnt), nil
 }

@@ -38,87 +38,41 @@ func (m *sumBuffer) Update(ctx *sql.Context, row sql.Row) error {
 		return nil
 	}
 
-	m.PerformSum(ctx, v)
-
-	return nil
+	return m.PerformSum(ctx, v)
 }
 
-func (m *sumBuffer) PerformSum(ctx *sql.Context, v any) {
-	// TODO: To handle datetime conversions properly this needs to use types.TypeAwareConversion
-	//  Additionally, this could be rewritten to be cleaner and more efficient.
-	//  Tracking issue: https://github.com/dolthub/dolt/issues/10278
-	// *apd.Decimal values are evaluated to string value even though the Literal expr type is Decimal type,
-	// so convert it to the appropriate Decimal type
-	if s, isStr := v.(string); isStr && types.IsDecimal(m.expr.Type(ctx)) {
-		val, _, err := m.expr.Type(ctx).Convert(ctx, s)
-		if err == nil {
-			v = val
+func (m *sumBuffer) PerformSum(ctx *sql.Context, v any) error {
+	if types.IsDecimal(numericAggregateType(ctx, m.expr, false)) {
+		n, err := types.InternalDecimalType.ConvertToDecimal(v)
+		if err != nil {
+			return err
 		}
-	}
-	switch n := v.(type) {
-	case float64:
-		if m.isnil {
-			m.sum = float64(0)
-			m.isnil = false
-		}
-		switch sum := m.sum.(type) {
-		case float64:
-		case *apd.Decimal:
-			m.sum, _ = sum.Float64()
-		default:
-			var err error
-			m.sum, _, err = types.Float64.Convert(ctx, sum)
-			if err != nil {
-				m.sum = float64(0)
-			}
-		}
-		m.sum = m.sum.(float64) + n
-	case *apd.Decimal:
 		if m.isnil {
 			m.sum = apd.New(0, 0)
-			m.isnil = false
 		}
-		switch sum := m.sum.(type) {
-		case *apd.Decimal:
-		case float64:
-			m.sum = types.DecimalFromFloat64(sum)
-		default:
-			var err error
-			m.sum, _, err = types.InternalDecimalType.Convert(ctx, sum)
-			if err != nil {
-				m.sum = apd.New(0, 0)
-			}
+		sum := m.sum.(*apd.Decimal)
+		if _, err = sql.DecimalCtx.Add(sum, sum, n); err != nil {
+			return err
 		}
-		curSum := m.sum.(*apd.Decimal)
-		_, _ = sql.DecimalCtx.Add(curSum, curSum, n)
-		m.sum = curSum
-	default:
-		val, _, err := types.Float64.Convert(ctx, n)
-		if err != nil {
-			val = float64(0)
+	} else {
+		// Preserve the existing approximate conversion of nonnumeric strings to zero.
+		n, _, err := types.Float64.Convert(ctx, v)
+		if err != nil || n == nil {
+			n = float64(0)
 		}
-		if m.isnil {
-			m.sum = float64(0)
-			m.isnil = false
-		}
-		switch sum := m.sum.(type) {
-		case float64:
-		case *apd.Decimal:
-			m.sum, _ = sum.Float64()
-		default:
-			sum, _, err = types.Float64.Convert(ctx, sum)
-			if err != nil {
-				sum = float64(0)
-			}
-		}
-		m.sum = m.sum.(float64) + val.(float64)
+		m.sum = m.sum.(float64) + n.(float64)
 	}
+	m.isnil = false
+	return nil
 }
 
 // Eval implements the AggregationBuffer interface.
 func (m *sumBuffer) Eval(ctx *sql.Context) (interface{}, error) {
 	if m.isnil {
 		return nil, nil
+	}
+	if sum, ok := m.sum.(*apd.Decimal); ok {
+		return decimalAggregateResult(ctx, m.expr, sum, 0, false)
 	}
 	return m.sum, nil
 }
@@ -197,7 +151,9 @@ func (a *avgBuffer) Update(ctx *sql.Context, row sql.Row) error {
 		return nil
 	}
 
-	a.sum.PerformSum(ctx, v)
+	if err := a.sum.PerformSum(ctx, v); err != nil {
+		return err
+	}
 	a.rows += 1
 
 	return nil
@@ -205,33 +161,13 @@ func (a *avgBuffer) Update(ctx *sql.Context, row sql.Row) error {
 
 // Eval implements the AggregationBuffer interface.
 func (a *avgBuffer) Eval(ctx *sql.Context) (interface{}, error) {
-	sum, err := a.sum.Eval(ctx)
-	if err != nil {
-		return nil, err
+	if a.rows == 0 {
+		return nil, nil
 	}
-	// This case is triggered when no rows exist.
-	switch s := sum.(type) {
-	case float64:
-		if s == 0 && a.rows == 0 {
-			return nil, nil
-		}
-
-		if a.rows == 0 {
-			return float64(0), nil
-		}
-
-		return s / float64(a.rows), nil
-	case *apd.Decimal:
-		if s.IsZero() && a.rows == 0 {
-			return nil, nil
-		}
-		if a.rows == 0 {
-			return apd.New(0, 0), nil
-		}
-		scale := (s.Exponent * -1) + 4
-		return types.DecimalDiv(s, types.DecimalFromInt64(a.rows), scale, false), nil
+	if sum, ok := a.sum.sum.(*apd.Decimal); ok {
+		return decimalAggregateResult(ctx, a.expr, sum, a.rows, true)
 	}
-	return nil, nil
+	return a.sum.sum.(float64) / float64(a.rows), nil
 }
 
 // Dispose implements the Disposable interface.
