@@ -183,8 +183,8 @@ func (f *Format) Eval(ctx *sql.Context, row sql.Row) (interface{}, error) {
 	}
 
 	decimalChar := p.Sprintf("%v", number.Decimal(1.5))
-	if len(fractionStr) < int(numDecimalPlaces) {
-		rp := int(numDecimalPlaces) - len(fractionStr)
+	if len(fractionStr) < sql.ClampFloatToInteger[int](numDecimalPlaces) {
+		rp := sql.ClampFloatToInteger[int](numDecimalPlaces) - len(fractionStr)
 		fractionStr += strings.Repeat("0", rp)
 	}
 

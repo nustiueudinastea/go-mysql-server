@@ -378,7 +378,7 @@ func (m *Memo) statsForRel(ctx *sql.Context, rel RelExpr) sql.Statistic {
 				}
 				rs := float64(right.RowCount()) * selectivity
 				card := float64(left.RowCount()) * max(1.0, rs)
-				return &stats.Statistic{RowCnt: uint64(card)}
+				return &stats.Statistic{RowCnt: sql.ClampFloatToInteger[uint64](card)}
 			case *FullOuterJoin:
 				// If we have an injective lookup or a merge, use those stats instead.
 				// Otherwise, joins impose a minimum row count.
@@ -390,7 +390,7 @@ func (m *Memo) statsForRel(ctx *sql.Context, rel RelExpr) sql.Statistic {
 					float64(left.RowCount())*max(1.0, float64(right.RowCount())*selectivity),
 					float64(right.RowCount())*max(1.0, float64(left.RowCount())*selectivity),
 				)
-				return &stats.Statistic{RowCnt: uint64(card)}
+				return &stats.Statistic{RowCnt: sql.ClampFloatToInteger[uint64](card)}
 			case *LookupJoin:
 				if n.Injective {
 					injective = true
@@ -446,7 +446,7 @@ func (m *Memo) statsForRel(ctx *sql.Context, rel RelExpr) sql.Statistic {
 		}
 
 		card := float64(left.RowCount()*right.RowCount()) * selectivity
-		return &stats.Statistic{RowCnt: uint64(card)}
+		return &stats.Statistic{RowCnt: sql.ClampFloatToInteger[uint64](card)}
 
 	case *Max1Row:
 		stat = &stats.Statistic{RowCnt: 1}
@@ -462,8 +462,8 @@ func (m *Memo) statsForRel(ctx *sql.Context, rel RelExpr) sql.Statistic {
 				return rel.Stats
 			} else if rel.Stats.RowCount() > 0 {
 				// don't accidentally round to zero
-				newRows := uint64(math.Max(1, float64(rel.Stats.RowCount())/2))
-				newDistinct := uint64(math.Max(1, float64(rel.Stats.DistinctCount())/2))
+				newRows := sql.ClampFloatToInteger[uint64](math.Max(1, float64(rel.Stats.RowCount())/2))
+				newDistinct := sql.ClampFloatToInteger[uint64](math.Max(1, float64(rel.Stats.DistinctCount())/2))
 				return rel.Stats.WithRowCount(newRows).WithDistinctCount(newDistinct)
 			}
 		}
@@ -504,7 +504,7 @@ func (m *Memo) statsForRel(ctx *sql.Context, rel RelExpr) sql.Statistic {
 	case *Filter:
 		// TODO: should determine actual filter selectivity based on histograms...
 		card := float64(rel.Child.RelProps.GetStats().RowCount()) * defaultFilterSelectivity
-		stat = &stats.Statistic{RowCnt: uint64(card)}
+		stat = &stats.Statistic{RowCnt: sql.ClampFloatToInteger[uint64](card)}
 
 	case *Project:
 		stat = rel.Child.RelProps.GetStats()

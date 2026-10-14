@@ -715,9 +715,9 @@ func toInt64(x interface{}) int64 {
 	case uint64:
 		return int64(x)
 	case float32:
-		return int64(x)
+		return sql.ClampFloatToInteger[int64](float64(x))
 	case float64:
-		return int64(x)
+		return sql.ClampFloatToInteger[int64](x)
 	default:
 		panic(fmt.Sprintf("Expected a numeric auto increment value, but got %T", x))
 	}

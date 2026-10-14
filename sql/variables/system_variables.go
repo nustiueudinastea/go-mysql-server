@@ -2994,7 +2994,7 @@ var systemVars = map[string]sql.SystemVariable{
 		Type:              types.NewSystemBoolType("updatable_views_with_limit"),
 		Default:           int8(1),
 		ValueFunction: func() (interface{}, error) {
-			return int(time.Now().Sub(ServerStartUpTime).Seconds()), nil
+			return sql.ClampFloatToInteger[int](time.Now().Sub(ServerStartUpTime).Seconds()), nil
 		},
 	},
 	"use_secondary_engine": &sql.MysqlSystemVariable{

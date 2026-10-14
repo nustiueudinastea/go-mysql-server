@@ -205,7 +205,7 @@ func (t datetimeType) CompareValue(ctx *sql.Context, a, b sql.Value) (int, error
 // splitFloat splits the float f into its whole and fractional parts
 // invalid values will return false
 func splitFloat(f float64) (int64, int64, bool) {
-	if math.IsNaN(f) || f > math.MaxInt64 || f < math.MinInt64 {
+	if math.IsNaN(f) || f >= 0x1p63 || f < math.MinInt64 {
 		return 0, 0, false
 	}
 	whole := int64(f)

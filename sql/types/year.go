@@ -124,9 +124,9 @@ func (t YearType_) Convert(ctx context.Context, v interface{}) (interface{}, sql
 	case uint64:
 		return t.Convert(ctx, int64(value))
 	case float32:
-		return t.Convert(ctx, int64(value))
+		return t.Convert(ctx, sql.ClampFloatToInteger[int64](float64(value)))
 	case float64:
-		return t.Convert(ctx, int64(value))
+		return t.Convert(ctx, sql.ClampFloatToInteger[int64](value))
 	case *apd.Decimal:
 		return t.Convert(ctx, DecimalRoundedIntPart(value))
 	case string:
@@ -250,10 +250,10 @@ func ConvertValueToYear(ctx *sql.Context, v sql.Value) (uint16, error) {
 		return uint16(x), nil
 	case sqltypes.Float32:
 		x := values.ReadFloat32(v.Val)
-		return uint16(x), nil
+		return sql.ClampFloatToInteger[uint16](float64(x)), nil
 	case sqltypes.Float64:
 		x := values.ReadFloat64(v.Val)
-		return uint16(x), nil
+		return sql.ClampFloatToInteger[uint16](x), nil
 	case sqltypes.Decimal:
 		x := values.ReadDecimal(v.Val)
 		return uint16(DecimalRoundedIntPart(x)), nil

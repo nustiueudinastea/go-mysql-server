@@ -257,7 +257,7 @@ func writeMarshalledValue(writer io.Writer, val interface{}) error {
 
 	case float64:
 		// JSON doesn't distinguish between integers and floats, so we need to check if the float is an integer
-		if val == float64(int64(val)) {
+		if sql.Float64IsInt64(val) {
 			_, err := writer.Write([]byte(strconv.FormatInt(int64(val), 10)))
 			return err
 		}
@@ -267,7 +267,7 @@ func writeMarshalledValue(writer io.Writer, val interface{}) error {
 
 	case float32:
 		// JSON doesn't distinguish between integers and floats, so we need to check if the float is an integer
-		if val == float32(int32(val)) {
+		if val >= -0x1p31 && val < 0x1p31 && val == float32(int32(val)) {
 			_, err := writer.Write([]byte(strconv.FormatInt(int64(val), 10)))
 			return err
 		}

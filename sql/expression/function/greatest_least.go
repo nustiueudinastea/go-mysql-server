@@ -141,7 +141,7 @@ func compEval(
 				t = int64(x)
 			}
 			ival := t.(int64)
-			if i == 0 || cmp(ival, int64(selectedNum)) {
+			if i == 0 || cmp(ival, sql.ClampFloatToInteger[int64](selectedNum)) {
 				selectedNum = float64(ival)
 			}
 		case float32, float64:
@@ -193,7 +193,7 @@ func compEval(
 
 	switch returnType {
 	case types.Int64:
-		return int64(selectedNum), nil
+		return sql.ClampFloatToInteger[int64](selectedNum), nil
 	case types.LongText:
 		return selectedString, nil
 	}

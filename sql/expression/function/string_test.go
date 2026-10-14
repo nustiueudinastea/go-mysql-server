@@ -17,6 +17,7 @@ package function
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"testing"
 	"time"
 
@@ -165,4 +166,35 @@ func TestQuote(t *testing.T) {
 	tf.AddSucceeding("'12345'", 12345)
 	tf.AddSucceeding("'\\\\, \\', \\0, \\\032'", "\\, ', \000, \032")
 	tf.Test(t, nil, nil)
+}
+
+func TestHexBinFloatBoundaries(t *testing.T) {
+	ctx := sql.NewEmptyContext()
+	for _, test := range []struct {
+		f   float64
+		hex string
+		bin int64
+	}{
+		{0x1p63, "8000000000000000", math.MaxInt64}, {-0x1p63, "8000000000000000", math.MinInt64},
+		{0x1p64, "7FFFFFFFFFFFFFFF", math.MaxInt64}, {-0x1p64, "8000000000000000", math.MinInt64},
+		{1e100, "7FFFFFFFFFFFFFFF", math.MaxInt64}, {-1e100, "8000000000000000", math.MinInt64},
+		{math.NaN(), "0", 0}, {math.Inf(1), "7FFFFFFFFFFFFFFF", math.MaxInt64}, {math.Inf(-1), "8000000000000000", math.MinInt64},
+	} {
+		t.Run(fmt.Sprint(test.f), func(t *testing.T) {
+			actual, err := NewHex(ctx, expression.NewLiteral(test.f, types.Float64)).Eval(ctx, nil)
+			require.NoError(t, err)
+			require.Equal(t, test.hex, actual)
+			for _, input := range []sql.Expression{
+				expression.NewLiteral(test.f, types.Float64), expression.NewLiteral(fmt.Sprint(test.f), types.LongText),
+			} {
+				actual, err := NewBin(ctx, input).Eval(ctx, nil)
+				require.NoError(t, err)
+				expected := strconv.FormatUint(uint64(test.bin), 2)
+				if test.bin == math.MinInt64 {
+					expected = "100000000000000"
+				} // Preserve the existing negative BIN formatter.
+				require.Equal(t, expected, actual)
+			}
+		})
+	}
 }

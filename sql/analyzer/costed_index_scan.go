@@ -1029,14 +1029,14 @@ func inValsToMySQLRangeCollHelper[N cmp.Ordered](ctx *sql.Context, vals []any, t
 			if isStrType {
 				return nil, false
 			}
-			if precise && float32(int(v)) != v {
+			if precise && !sql.Float64IsInt64(float64(v)) {
 				continue
 			}
 		case float64:
 			if isStrType {
 				return nil, false
 			}
-			if precise && float64(int(v)) != v {
+			if precise && !sql.Float64IsInt64(v) {
 				continue
 			}
 		case *apd.Decimal:
@@ -2207,10 +2207,10 @@ func newUniformDistStatistic(ctx *sql.Context, dbName, schemaName, tableName str
 
 	distinctCount := rowCount
 	if !idx.IsUnique() {
-		distinctCount = uint64(float64(distinctCount) * dummyNotUniqueDistinct)
+		distinctCount = sql.ClampFloatToInteger[uint64](float64(distinctCount) * dummyNotUniqueDistinct)
 	}
 
-	nullCount := uint64(float64(distinctCount) * dummyNotUniqueNull)
+	nullCount := sql.ClampFloatToInteger[uint64](float64(distinctCount) * dummyNotUniqueNull)
 
 	var cols []string
 	var types []sql.Type

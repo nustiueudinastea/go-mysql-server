@@ -222,7 +222,7 @@ func (h Histogram) DebugString(ctx *Context) string {
 	b.WriteString("histogram:\n")
 	for j, bound := range bounds {
 		b.WriteString(bound + ": ")
-		for i := 0; i < int(float64(cnts[j])*flatten); i++ {
+		for i := 0; i < ClampFloatToInteger[int](float64(cnts[j])*flatten); i++ {
 			b.WriteString("*")
 		}
 		fmt.Fprintf(&b, "(%d)\n", cnts[j])

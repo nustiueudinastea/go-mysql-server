@@ -129,12 +129,12 @@ func (b *MySQLIndexBuilder) Equals(ctx *Context, colExpr string, keyType Type, k
 		if t, ok := colTyp.(NumberType); ok && t.IsNumericType() && !t.IsFloat() {
 			switch k := k.(type) {
 			case float32:
-				if float32(int64(k)) != k {
+				if !Float64IsInt64(float64(k)) {
 					potentialRanges[i] = EmptyRangeColumnExpr(colTyp)
 					continue
 				}
 			case float64:
-				if float64(int64(k)) != k {
+				if !Float64IsInt64(k) {
 					potentialRanges[i] = EmptyRangeColumnExpr(colTyp)
 					continue
 				}
@@ -213,12 +213,12 @@ func (b *MySQLIndexBuilder) In(ctx *Context, colExpr string, keyTypes []Type, ke
 		if t, ok := colTyp.(NumberType); ok && t.IsNumericType() && !t.IsFloat() {
 			switch k := k.(type) {
 			case float32:
-				if float32(int64(k)) != k {
+				if !Float64IsInt64(float64(k)) {
 					potentialRanges[i] = EmptyRangeColumnExpr(colTyp)
 					continue
 				}
 			case float64:
-				if float64(int64(k)) != k {
+				if !Float64IsInt64(k) {
 					potentialRanges[i] = EmptyRangeColumnExpr(colTyp)
 					continue
 				}
@@ -267,12 +267,12 @@ func (b *MySQLIndexBuilder) NotEquals(ctx *Context, colExpr string, keyType Type
 	// if converting from float to int results in rounding, then it's entire range (excluding nulls)
 	switch k := key.(type) {
 	case float32:
-		if float32(int64(k)) != k {
+		if !Float64IsInt64(float64(k)) {
 			b.updateCol(ctx, colExpr, NotNullRangeColumnExpr(colTyp))
 			return b
 		}
 	case float64:
-		if float64(int64(k)) != k {
+		if !Float64IsInt64(k) {
 			b.updateCol(ctx, colExpr, NotNullRangeColumnExpr(colTyp))
 			return b
 		}

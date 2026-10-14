@@ -200,7 +200,7 @@ func (s *StatsProv) reservoirSample(ctx *sql.Context, table sql.Table) ([]sql.Ro
 		return w * math.Exp(math.Log(rand.Float64())/maxQueue)
 	}
 	updateI := func(i int, w float64) int {
-		return i + int(math.Floor(math.Log(rand.Float64())/math.Log(1-w))) + 1
+		return i + sql.ClampFloatToInteger[int](math.Floor(math.Log(rand.Float64())/math.Log(1-w))) + 1
 	}
 	w := updateW(1)
 	i := updateI(0, w)

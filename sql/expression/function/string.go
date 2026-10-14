@@ -296,14 +296,19 @@ func hexForNegativeInt64(n int64) string {
 }
 
 func hexForFloat(f float64) (string, error) {
+	// The positive path historically accepts the full uint64 range. Preserve
+	// that range, but use MySQL's signed saturation for larger floating inputs.
+	if f >= 0x1p64 {
+		return fmt.Sprintf("%X", sql.ClampFloatToInteger[int64](f)), nil
+	}
 	if f < 0 {
 		f -= 0.5
-		n := int64(f)
+		n := sql.ClampFloatToInteger[int64](f)
 		return hexForNegativeInt64(n), nil
 	}
 
 	f += 0.5
-	n := uint64(f)
+	n := sql.ClampFloatToInteger[uint64](f)
 	return fmt.Sprintf("%X", n), nil
 }
 
@@ -507,14 +512,14 @@ func (h *Bin) convertToInt64(v interface{}) (int64, error) {
 		} else if v <= float32(math.MinInt64) {
 			return math.MinInt64, nil
 		}
-		return int64(v), nil
+		return sql.ClampFloatToInteger[int64](float64(v)), nil
 	case float64:
 		if v >= float64(math.MaxInt64) {
 			return math.MaxInt64, nil
 		} else if v <= float64(math.MinInt64) {
 			return math.MinInt64, nil
 		}
-		return int64(v), nil
+		return sql.ClampFloatToInteger[int64](v), nil
 	case *apd.Decimal:
 		if v.Cmp(types.DecimalMaxInt64) > 0 {
 			return math.MaxInt64, nil
@@ -539,7 +544,7 @@ func (h *Bin) convertToInt64(v interface{}) (int64, error) {
 		if err != nil {
 			return 0, sql.ErrInvalidValue.New(v, types.Int64.String())
 		}
-		return int64(f), nil
+		return sql.ClampFloatToInteger[int64](f), nil
 	case bool:
 		if v {
 			return 1, nil

@@ -71,8 +71,8 @@ func (c *coster) costRel(ctx *sql.Context, n RelExpr, s sql.StatsProvider) (floa
 		// TODO: this is not necessarily correct, since we push down filters into that index scan
 		// if a child is an index scan, the table scan will be more expensive
 		var err error
-		lTableScan := uint64(lBest)
-		rTableScan := uint64(rBest)
+		lTableScan := sql.ClampFloatToInteger[uint64](lBest)
+		rTableScan := sql.ClampFloatToInteger[uint64](rBest)
 
 		if iScan, ok := jp.Left.Best.(*IndexScan); ok {
 			lTableScan, err = s.RowCount(ctx, sql.TableSchemaName(iScan.Table.UnderlyingTable()), iScan.Table.Database().Name(), iScan.Table)

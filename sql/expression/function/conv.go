@@ -145,7 +145,7 @@ func convertFromBase(ctx *sql.Context, nVal string, fromBase interface{}) interf
 	if err != nil {
 		return nil
 	}
-	fromVal := int(math.Abs(float64(baseVal.(int64))))
+	fromVal := sql.ClampFloatToInteger[int](math.Abs(float64(baseVal.(int64))))
 	if fromVal < 2 || fromVal > 36 {
 		return nil
 	}
@@ -207,7 +207,7 @@ func convertToBase(ctx *sql.Context, val interface{}, toBase interface{}) string
 		return ""
 	}
 
-	toVal := int(math.Abs(float64(toBase.(int64))))
+	toVal := sql.ClampFloatToInteger[int](math.Abs(float64(toBase.(int64))))
 	if toVal < 2 || toVal > 36 {
 		return ""
 	}

@@ -45,13 +45,13 @@ func InterpolateNewCounts(from, to sql.Statistic) sql.Statistic {
 	for i, h := range from.Histogram() {
 		newMcvs := make([]uint64, len(h.McvCounts()))
 		for i, cnt := range h.McvCounts() {
-			newMcvs[i] = uint64(math.Max(1, float64(cnt)*filterSelectivity))
+			newMcvs[i] = sql.ClampFloatToInteger[uint64](math.Max(1, float64(cnt)*filterSelectivity))
 		}
 		newHist[i] = NewHistogramBucket(
-			uint64(math.Max(1, float64(h.RowCount())*filterSelectivity)),
-			uint64(math.Max(1, float64(h.DistinctCount())*filterSelectivity)),
-			uint64(math.Max(1, float64(h.NullCount())*filterSelectivity)),
-			uint64(math.Max(1, float64(h.BoundCount())*filterSelectivity)),
+			sql.ClampFloatToInteger[uint64](math.Max(1, float64(h.RowCount())*filterSelectivity)),
+			sql.ClampFloatToInteger[uint64](math.Max(1, float64(h.DistinctCount())*filterSelectivity)),
+			sql.ClampFloatToInteger[uint64](math.Max(1, float64(h.NullCount())*filterSelectivity)),
+			sql.ClampFloatToInteger[uint64](math.Max(1, float64(h.BoundCount())*filterSelectivity)),
 			h.UpperBound(),
 			h.McvCounts(),
 			h.Mcvs())

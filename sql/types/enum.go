@@ -206,9 +206,9 @@ func (t EnumType) Convert(ctx context.Context, v interface{}) (interface{}, sql.
 	case uint64:
 		return t.Convert(ctx, int(value))
 	case float32:
-		return t.Convert(ctx, int(value))
+		return t.Convert(ctx, sql.ClampFloatToInteger[int](float64(value)))
 	case float64:
-		return t.Convert(ctx, int(value))
+		return t.Convert(ctx, sql.ClampFloatToInteger[int](value))
 	case *apd.Decimal:
 		return t.Convert(ctx, DecimalRoundedIntPart(value))
 	case string:

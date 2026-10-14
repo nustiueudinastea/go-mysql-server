@@ -104,10 +104,10 @@ func tableToStatusRow(ctx *sql.Context, table sql.Table) (sql.Row, error) {
 		// This column is unused. With the removal of .frm files in MySQL 8.0, this
 		// column now reports a hardcoded value of 10, which is the last .frm file
 		// version used in MySQL 5.7.
-		"10",                       // Version
-		"Fixed",                    // Row_format
-		numRows,                    // Rows
-		uint64(avgLength),          // Avg_row_length
+		"10",    // Version
+		"Fixed", // Row_format
+		numRows, // Rows
+		sql.ClampFloatToInteger[uint64](avgLength), // Avg_row_length
 		dataLength,                 // Data_length
 		uint64(0),                  // Max_data_length (Unused for InnoDB)
 		int64(0),                   // Index_length

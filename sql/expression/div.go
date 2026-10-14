@@ -792,7 +792,7 @@ func intDiv(ctx *sql.Context, lval, rval interface{}) (interface{}, error) {
 				return nil, nil
 			}
 			res := l / r
-			return int64(math.Floor(res)), nil
+			return sql.ClampFloatToInteger[int64](math.Floor(res)), nil
 		}
 	case *apd.Decimal:
 		switch r := rval.(type) {

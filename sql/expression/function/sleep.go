@@ -66,7 +66,7 @@ func (s *Sleep) Eval(ctx *sql.Context, row sql.Row) (interface{}, error) {
 		return nil, err
 	}
 
-	t := time.NewTimer(time.Duration(child.(float64)*1000) * time.Millisecond)
+	t := time.NewTimer(sql.ClampFloatToInteger[time.Duration](child.(float64)*1000) * time.Millisecond)
 	defer t.Stop()
 
 	select {

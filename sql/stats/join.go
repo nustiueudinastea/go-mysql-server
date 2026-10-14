@@ -132,12 +132,12 @@ func joinAlignedStats(left, right []sql.HistogramBucket, cmp func(sql.Row, sql.R
 		minDistinct := math.Min(lDistinct, rDistinct)
 
 		if maxDistinct > 0 {
-			rows += uint64(float64(lRows*rRows) / float64(maxDistinct))
+			rows += sql.ClampFloatToInteger[uint64](float64(lRows*rRows) / float64(maxDistinct))
 		}
 
 		newBucket := NewHistogramBucket(
 			rows,
-			uint64(minDistinct)+uint64(mcvMatch), // matched mcvs contribute back to result distinct count
+			sql.ClampFloatToInteger[uint64](minDistinct)+uint64(mcvMatch), // matched mcvs contribute back to result distinct count
 			0,
 			l.BoundCount(), l.UpperBound(), nil, nil)
 		newBuckets = append(newBuckets, newBucket)
@@ -312,9 +312,9 @@ func AlignBuckets(h1, h2 sql.Histogram, lBound1, lBound2 sql.Row, s1Types, s2Typ
 					}
 
 					nextR = NewHistogramBucket(
-						uint64(float64(nextR.RowCount())+float64(peekR.RowCount())),
-						uint64(float64(nextR.DistinctCount())+float64(peekR.DistinctCount())),
-						uint64(float64(nextR.NullCount())+float64(peekR.NullCount())),
+						sql.ClampFloatToInteger[uint64](float64(nextR.RowCount())+float64(peekR.RowCount())),
+						sql.ClampFloatToInteger[uint64](float64(nextR.DistinctCount())+float64(peekR.DistinctCount())),
+						sql.ClampFloatToInteger[uint64](float64(nextR.NullCount())+float64(peekR.NullCount())),
 						peekR.BoundCount(), peekR.UpperBound(), peekR.McvCounts(), peekR.Mcvs())
 				}
 
@@ -339,16 +339,16 @@ func AlignBuckets(h1, h2 sql.Histogram, lBound1, lBound2 sql.Row, s1Types, s2Typ
 
 				// lastL -> nextR
 				firstHalf := NewHistogramBucket(
-					uint64(float64(nextR.RowCount())+float64(peekR.RowCount())*cutFrac),
-					uint64(float64(nextR.DistinctCount())+float64(peekR.DistinctCount())*cutFrac),
-					uint64(float64(nextR.NullCount())+float64(peekR.NullCount())*cutFrac),
+					sql.ClampFloatToInteger[uint64](float64(nextR.RowCount())+float64(peekR.RowCount())*cutFrac),
+					sql.ClampFloatToInteger[uint64](float64(nextR.DistinctCount())+float64(peekR.DistinctCount())*cutFrac),
+					sql.ClampFloatToInteger[uint64](float64(nextR.NullCount())+float64(peekR.NullCount())*cutFrac),
 					1, nextL.UpperBound(), nil, nil)
 
 				// nextR -> nextL
 				secondHalf := NewHistogramBucket(
-					uint64(float64(peekR.RowCount())*(1-cutFrac)),
-					uint64(float64(peekR.DistinctCount())*(1-cutFrac)),
-					uint64(float64(peekR.NullCount())*(1-cutFrac)),
+					sql.ClampFloatToInteger[uint64](float64(peekR.RowCount())*(1-cutFrac)),
+					sql.ClampFloatToInteger[uint64](float64(peekR.DistinctCount())*(1-cutFrac)),
+					sql.ClampFloatToInteger[uint64](float64(peekR.NullCount())*(1-cutFrac)),
 					peekR.BoundCount(),
 					peekR.UpperBound(),
 					peekR.McvCounts(),
@@ -375,16 +375,16 @@ func AlignBuckets(h1, h2 sql.Histogram, lBound1, lBound2 sql.Row, s1Types, s2Typ
 
 			// lastL -> nextR
 			firstHalf := NewHistogramBucket(
-				uint64(float64(nextL.RowCount())*(1-cutFrac)),
-				uint64(float64(nextL.DistinctCount())*(1-cutFrac)),
-				uint64(float64(nextL.NullCount())*(1-cutFrac)),
+				sql.ClampFloatToInteger[uint64](float64(nextL.RowCount())*(1-cutFrac)),
+				sql.ClampFloatToInteger[uint64](float64(nextL.DistinctCount())*(1-cutFrac)),
+				sql.ClampFloatToInteger[uint64](float64(nextL.NullCount())*(1-cutFrac)),
 				1, nextR.UpperBound(), nil, nil)
 
 			// nextR -> nextL
 			secondHalf := NewHistogramBucket(
-				uint64(float64(nextL.RowCount())*cutFrac),
-				uint64(float64(nextL.DistinctCount())*cutFrac),
-				uint64(float64(nextL.NullCount())*cutFrac),
+				sql.ClampFloatToInteger[uint64](float64(nextL.RowCount())*cutFrac),
+				sql.ClampFloatToInteger[uint64](float64(nextL.DistinctCount())*cutFrac),
+				sql.ClampFloatToInteger[uint64](float64(nextL.NullCount())*cutFrac),
 				nextL.BoundCount(),
 				nextL.UpperBound(),
 				nextL.McvCounts(),
@@ -436,9 +436,9 @@ func AlignBuckets(h1, h2 sql.Histogram, lBound1, lBound2 sql.Row, s1Types, s2Typ
 				peekL := leftStack[len(leftStack)-1]
 				leftStack = leftStack[:len(leftStack)-1]
 				nextL = NewHistogramBucket(
-					uint64(float64(nextL.RowCount())+float64(peekL.RowCount())),
-					uint64(float64(nextL.DistinctCount())+float64(peekL.DistinctCount())),
-					uint64(float64(nextL.NullCount())+float64(peekL.NullCount())),
+					sql.ClampFloatToInteger[uint64](float64(nextL.RowCount())+float64(peekL.RowCount())),
+					sql.ClampFloatToInteger[uint64](float64(nextL.DistinctCount())+float64(peekL.DistinctCount())),
+					sql.ClampFloatToInteger[uint64](float64(nextL.NullCount())+float64(peekL.NullCount())),
 					peekL.BoundCount(), peekL.UpperBound(), peekL.McvCounts(), peekL.Mcvs())
 			}
 			leftRes = append(leftRes, nextL)

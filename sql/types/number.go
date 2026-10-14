@@ -980,7 +980,7 @@ func convertToInt64(t NumberTypeImpl_, v any, round Round) (int64, sql.ConvertIn
 		if err != nil {
 			return 0, sql.InRange, err
 		}
-		return int64(f64), sql.InRange, nil
+		return sql.ClampFloatToInteger[int64](f64), sql.InRange, nil
 	case int:
 		return int64(v), sql.InRange, nil
 	case int8:
@@ -1005,24 +1005,9 @@ func convertToInt64(t NumberTypeImpl_, v any, round Round) (int64, sql.ConvertIn
 		}
 		return int64(v), sql.InRange, nil
 	case float32:
-		if v > float32(math.MaxInt64) {
-			return math.MaxInt64, sql.Overflow, nil
-		}
-		if v < float32(math.MinInt64) {
-			return math.MinInt64, sql.Underflow, nil
-		}
-		return int64(math.Round(float64(v))), sql.InRange, nil
+		return convertFloatToInt64(t, float64(v))
 	case float64:
-		if math.IsNaN(v) {
-			return 0, sql.InRange, sql.ErrInvalidValue.New(v, t.String())
-		}
-		if v > float64(math.MaxInt64) {
-			return math.MaxInt64, sql.Overflow, nil
-		}
-		if v < float64(math.MinInt64) {
-			return math.MinInt64, sql.Underflow, nil
-		}
-		return int64(math.Round(v)), sql.InRange, nil
+		return convertFloatToInt64(t, v)
 	case *apd.Decimal:
 		if v.Cmp(DecimalMaxInt64) > 0 {
 			return math.MaxInt64, sql.Overflow, nil
@@ -1088,7 +1073,7 @@ func convertToUint64(t NumberTypeImpl_, v any, round Round) (uint64, sql.Convert
 		if err != nil {
 			return 0, sql.InRange, err
 		}
-		return uint64(f64), sql.InRange, nil
+		return sql.ClampFloatToInteger[uint64](f64), sql.InRange, nil
 	case int:
 		if v < 0 {
 			return uint64(v), sql.Underflow, nil
@@ -1125,24 +1110,9 @@ func convertToUint64(t NumberTypeImpl_, v any, round Round) (uint64, sql.Convert
 	case uint64:
 		return v, sql.InRange, nil
 	case float32:
-		if v > float32(math.MaxInt64) {
-			return math.MaxUint64, sql.Overflow, nil
-		}
-		if v < 0 {
-			return uint64(math.MaxUint64 - uint(-v-1)), sql.Underflow, nil
-		}
-		return uint64(math.Round(float64(v))), sql.InRange, nil
+		return convertFloatToUint64(t, float64(v))
 	case float64:
-		if math.IsNaN(v) {
-			return 0, sql.InRange, sql.ErrInvalidValue.New(v, t.String())
-		}
-		if v >= float64(math.MaxUint64) {
-			return math.MaxUint64, sql.Overflow, nil
-		}
-		if v < 0 {
-			return uint64(math.MaxUint64 - uint(-v-1)), sql.Underflow, nil
-		}
-		return uint64(math.Round(v)), sql.InRange, nil
+		return convertFloatToUint64(t, v)
 	case *apd.Decimal:
 		if v.Cmp(DecimalMaxUint64) > 0 {
 			return math.MaxUint64, sql.Overflow, nil
@@ -1301,23 +1271,9 @@ func convertValueToInt64(ctx *sql.Context, v sql.Value) (int64, sql.ConvertInRan
 		}
 		return int64(x), sql.InRange, nil
 	case sqltypes.Float32:
-		x := values.ReadFloat32(v.Val)
-		if x > float32(math.MaxInt64) {
-			return math.MaxInt64, sql.Overflow, nil
-		}
-		if x < float32(math.MinInt64) {
-			return math.MinInt64, sql.Underflow, nil
-		}
-		return int64(math.Round(float64(x))), sql.InRange, nil
+		return convertFloatToInt64(Int64.(NumberTypeImpl_), float64(values.ReadFloat32(v.Val)))
 	case sqltypes.Float64:
-		x := values.ReadFloat64(v.Val)
-		if x > float64(math.MaxInt64) {
-			return math.MaxInt64, sql.Overflow, nil
-		}
-		if x < float64(math.MinInt64) {
-			return math.MinInt64, sql.Underflow, nil
-		}
-		return int64(math.Round(x)), sql.InRange, nil
+		return convertFloatToInt64(Int64.(NumberTypeImpl_), values.ReadFloat64(v.Val))
 	case sqltypes.Decimal:
 		x := values.ReadDecimal(v.Val)
 		if x.Cmp(DecimalMaxInt64) > 0 {
@@ -1363,23 +1319,9 @@ func convertValueToUint64(ctx *sql.Context, v sql.Value) (uint64, sql.ConvertInR
 	case sqltypes.Uint64:
 		return values.ReadUint64(v.Val), sql.InRange, nil
 	case sqltypes.Float32:
-		x := values.ReadFloat32(v.Val)
-		if x > float32(math.MaxUint64) {
-			return math.MaxUint64, sql.Overflow, nil
-		}
-		if x < 0 {
-			return uint64(x), sql.Underflow, nil
-		}
-		return uint64(math.Round(float64(x))), sql.InRange, nil
+		return convertFloatToUint64(Uint64.(NumberTypeImpl_), float64(values.ReadFloat32(v.Val)))
 	case sqltypes.Float64:
-		x := values.ReadFloat64(v.Val)
-		if x > float64(math.MaxUint64) {
-			return math.MaxUint64, sql.Overflow, nil
-		}
-		if x < 0 {
-			return uint64(x), sql.Underflow, nil
-		}
-		return uint64(math.Round(x)), sql.InRange, nil
+		return convertFloatToUint64(Uint64.(NumberTypeImpl_), values.ReadFloat64(v.Val))
 	case sqltypes.Decimal:
 		x := values.ReadDecimal(v.Val)
 		if x.Cmp(DecimalMaxUint64) > 0 {
@@ -1546,4 +1488,33 @@ func TruncateStringToDouble(s string, truncExp bool) (prefix string, truncated b
 		return s[:expIndex], i != n || truncExp
 	}
 	return s[:i], i != n
+}
+
+func convertFloatToInt64(t NumberTypeImpl_, f float64) (int64, sql.ConvertInRange, error) {
+	if math.IsNaN(f) {
+		return 0, sql.InRange, sql.ErrInvalidValue.New(f, t.String())
+	}
+	f = math.Round(f)
+	if f >= 0x1p63 {
+		return math.MaxInt64, sql.Overflow, nil
+	}
+	if f < -0x1p63 {
+		return math.MinInt64, sql.Underflow, nil
+	}
+	return sql.ClampFloatToInteger[int64](f), sql.InRange, nil
+}
+
+func convertFloatToUint64(t NumberTypeImpl_, f float64) (uint64, sql.ConvertInRange, error) {
+	if math.IsNaN(f) {
+		return 0, sql.InRange, sql.ErrInvalidValue.New(f, t.String())
+	}
+	if f >= 0x1p64 {
+		return math.MaxUint64, sql.Overflow, nil
+	}
+	if f < 0 {
+		// Preserve the negative-value complement rule, using a fixed-width,
+		// saturating conversion instead of an unchecked uint cast.
+		return math.MaxUint64 - sql.ClampFloatToInteger[uint64](-f-1), sql.Underflow, nil
+	}
+	return sql.ClampFloatToInteger[uint64](math.Round(f)), sql.InRange, nil
 }

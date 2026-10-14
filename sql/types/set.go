@@ -192,9 +192,9 @@ func (t SetType) Convert(ctx context.Context, v interface{}) (interface{}, sql.C
 			return value, sql.InRange, nil
 		}
 	case float32:
-		return t.Convert(ctx, uint64(value))
+		return t.Convert(ctx, sql.ClampFloatToInteger[uint64](float64(value)))
 	case float64:
-		return t.Convert(ctx, uint64(value))
+		return t.Convert(ctx, sql.ClampFloatToInteger[uint64](value))
 	case *apd.Decimal:
 		return t.Convert(ctx, DecimalIntPartUint64(value))
 	case string:

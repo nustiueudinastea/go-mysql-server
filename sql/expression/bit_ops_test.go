@@ -15,6 +15,8 @@
 package expression
 
 import (
+	"fmt"
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -235,5 +237,57 @@ func TestBitOpType(t *testing.T) {
 					tt.expectedType, tt.name, tt.description)
 			})
 		}
+	}
+}
+
+func TestBitFloatBoundaries(t *testing.T) {
+	ctx := sql.NewEmptyContext()
+	for _, test := range []struct {
+		f    float64
+		bits uint64
+	}{
+		{0x1p63, math.MaxInt64}, {-0x1p63, 1 << 63}, {0x1p64, math.MaxInt64}, {-0x1p64, 1 << 63},
+		{1e100, math.MaxInt64}, {-1e100, 1 << 63}, {math.NaN(), 0}, {math.Inf(1), math.MaxInt64}, {math.Inf(-1), 1 << 63},
+	} {
+		t.Run(fmt.Sprint(test.f), func(t *testing.T) {
+			for _, op := range []string{"&", "|", "^", "<<", ">>"} {
+				f := NewLiteral(test.f, types.Float64)
+				var right float64
+				expected := test.bits
+				switch op {
+				case "&":
+					right = 1
+					expected &= 1
+				case "|":
+					right = 1
+					expected |= 1
+				case "^":
+					right = 1
+					expected ^= 1
+				case "<<":
+					right = 1
+					expected <<= 1
+				case ">>":
+					right = 1
+					expected >>= 1
+				}
+				actual, err := NewBitOp(f, NewLiteral(right, types.Float64), op).Eval(ctx, nil)
+				require.NoError(t, err)
+				require.Equal(t, expected, actual, op)
+				// The shift count follows the same saturating signed conversion.
+				if op == "<<" || op == ">>" {
+					actual, err = NewBitOp(NewLiteral(float64(1), types.Float64), f, op).Eval(ctx, nil)
+					expected = 0
+					if math.IsNaN(test.f) {
+						expected = 1
+					}
+					require.NoError(t, err)
+					require.Equal(t, expected, actual, op+" shift count")
+				}
+			}
+			actual, err := intDiv(ctx, test.f, float64(1))
+			require.NoError(t, err)
+			require.Equal(t, int64(test.bits), actual, "DIV")
+		})
 	}
 }

@@ -16,6 +16,7 @@ package types
 
 import (
 	"cmp"
+	"github.com/dolthub/go-mysql-server/sql"
 	"math"
 )
 
@@ -105,10 +106,17 @@ func (j float64number) compare(other number) int {
 
 // compareIntToFloat compares an int64 to a float64 without unnecessary precision loss.
 func compareIntToFloat(i int64number, f float64number) int {
-	if float64(i) > float64(f) || int64(i) > int64(f) {
+	if math.IsNaN(float64(f)) || f < -0x1p63 {
 		return 1
 	}
-	if float64(i) < float64(f) || int64(i) < int64(f) {
+	if f >= 0x1p63 {
+		return -1
+	}
+
+	if float64(i) > float64(f) || int64(i) > sql.ClampFloatToInteger[int64](float64(f)) {
+		return 1
+	}
+	if float64(i) < float64(f) || int64(i) < sql.ClampFloatToInteger[int64](float64(f)) {
 		return -1
 	}
 	return 0
@@ -120,16 +128,16 @@ func compareFloatToInt(f float64number, i int64number) int {
 
 // compareUintToFloat compares a uint64 to a float64 without unnecessary precision loss.
 func compareUintToFloat(u uint64number, f float64number) int {
-	if f < 0 {
+	if math.IsNaN(float64(f)) || f < 0 {
 		return 1
 	}
-	if f > math.MaxUint64 {
+	if f >= 0x1p64 {
 		return -1
 	}
-	if float64(u) > float64(f) || uint64(u) > uint64(f) {
+	if float64(u) > float64(f) || uint64(u) > sql.ClampFloatToInteger[uint64](float64(f)) {
 		return 1
 	}
-	if float64(u) < float64(f) || uint64(u) < uint64(f) {
+	if float64(u) < float64(f) || uint64(u) < sql.ClampFloatToInteger[uint64](float64(f)) {
 		return -1
 	}
 	return 0

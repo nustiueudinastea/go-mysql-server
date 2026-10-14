@@ -160,8 +160,8 @@ func overloaded_type_test1(
 	ba *int8, bb *int16, bc *int, bd *int32, be *int64, bf *float32, bg *float64,
 ) (sql.RowIter, error) {
 	return sql.RowsToRowIter(sql.Row{
-		int64(aa) + int64(ab) + int64(ac) + int64(ad) + int64(ae) + int64(af) + int64(ag) +
-			int64(*ba) + int64(*bb) + int64(*bc) + int64(*bd) + int64(*be) + int64(*bf) + int64(*bg),
+		int64(aa) + int64(ab) + int64(ac) + int64(ad) + int64(ae) + sql.ClampFloatToInteger[int64](float64(af)) + sql.ClampFloatToInteger[int64](ag) +
+			int64(*ba) + int64(*bb) + int64(*bc) + int64(*bd) + int64(*be) + sql.ClampFloatToInteger[int64](float64(*bf)) + sql.ClampFloatToInteger[int64](*bg),
 	}), nil
 }
 func overloaded_type_test2(
@@ -181,8 +181,8 @@ func type_test3(
 	ba *uint8, bb *uint16, bc *uint, bd *uint32, be *uint64, bf *float32, bg *float64,
 ) (sql.RowIter, error) {
 	return sql.RowsToRowIter(sql.Row{
-		uint64(aa) + uint64(ab) + uint64(ac) + uint64(ad) + uint64(ae) + uint64(af) + uint64(ag) +
-			uint64(*ba) + uint64(*bb) + uint64(*bc) + uint64(*bd) + uint64(*be) + uint64(*bf) + uint64(*bg),
+		uint64(aa) + uint64(ab) + uint64(ac) + uint64(ad) + uint64(ae) + sql.ClampFloatToInteger[uint64](float64(af)) + sql.ClampFloatToInteger[uint64](ag) +
+			uint64(*ba) + uint64(*bb) + uint64(*bc) + uint64(*bd) + uint64(*be) + sql.ClampFloatToInteger[uint64](float64(*bf)) + sql.ClampFloatToInteger[uint64](*bg),
 	}), nil
 }
 

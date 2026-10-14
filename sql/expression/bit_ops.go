@@ -200,8 +200,8 @@ func bitAnd(lval, rval interface{}) (interface{}, error) {
 	case float64:
 		switch r := rval.(type) {
 		case float64:
-			left := convertUintFromInt(int64(math.Round(l)))
-			right := convertUintFromInt(int64(math.Round(r)))
+			left := convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(l)))
+			right := convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(r)))
 			return left & right, nil
 		}
 	case uint64:
@@ -227,18 +227,18 @@ func bitOr(lval, rval interface{}) (interface{}, error) {
 	} else if lval == nil {
 		switch r := rval.(type) {
 		case float64:
-			return convertUintFromInt(int64(math.Round(r))), nil
+			return convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(r))), nil
 		case int64:
-			return convertUintFromInt(int64(math.Round(float64(r)))), nil
+			return convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(float64(r)))), nil
 		case uint64:
 			return r, nil
 		}
 	} else if rval == nil {
 		switch l := lval.(type) {
 		case float64:
-			return convertUintFromInt(int64(math.Round(l))), nil
+			return convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(l))), nil
 		case int64:
-			return convertUintFromInt(int64(math.Round(float64(l)))), nil
+			return convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(float64(l)))), nil
 		case uint64:
 			return l, nil
 		}
@@ -248,8 +248,8 @@ func bitOr(lval, rval interface{}) (interface{}, error) {
 	case float64:
 		switch r := rval.(type) {
 		case float64:
-			left := convertUintFromInt(int64(math.Round(l)))
-			right := convertUintFromInt(int64(math.Round(r)))
+			left := convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(l)))
+			right := convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(r)))
 			return left | right, nil
 		}
 	case uint64:
@@ -275,18 +275,18 @@ func bitXor(lval, rval interface{}) (interface{}, error) {
 	} else if lval == nil {
 		switch r := rval.(type) {
 		case float64:
-			return convertUintFromInt(int64(math.Round(r))), nil
+			return convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(r))), nil
 		case int64:
-			return convertUintFromInt(int64(math.Round(float64(r)))), nil
+			return convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(float64(r)))), nil
 		case uint64:
 			return r, nil
 		}
 	} else if rval == nil {
 		switch l := lval.(type) {
 		case float64:
-			return convertUintFromInt(int64(math.Round(l))), nil
+			return convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(l))), nil
 		case int64:
-			return convertUintFromInt(int64(math.Round(float64(l)))), nil
+			return convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(float64(l)))), nil
 		case uint64:
 			return l, nil
 		}
@@ -296,8 +296,8 @@ func bitXor(lval, rval interface{}) (interface{}, error) {
 	case float64:
 		switch r := rval.(type) {
 		case float64:
-			left := convertUintFromInt(int64(math.Round(l)))
-			right := convertUintFromInt(int64(math.Round(r)))
+			left := convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(l)))
+			right := convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(r)))
 			return left ^ right, nil
 		}
 	case uint64:
@@ -324,9 +324,9 @@ func shiftLeft(lval, rval interface{}) (interface{}, error) {
 	if rval == nil {
 		switch l := lval.(type) {
 		case float64:
-			return convertUintFromInt(int64(math.Round(l))), nil
+			return convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(l))), nil
 		case int64:
-			return convertUintFromInt(int64(math.Round(float64(l)))), nil
+			return convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(float64(l)))), nil
 		case uint64:
 			return l, nil
 		}
@@ -335,8 +335,8 @@ func shiftLeft(lval, rval interface{}) (interface{}, error) {
 	case float64:
 		switch r := rval.(type) {
 		case float64:
-			left := convertUintFromInt(int64(math.Round(l)))
-			right := convertUintFromInt(int64(math.Round(r)))
+			left := convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(l)))
+			right := convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(r)))
 			return left << right, nil
 		}
 	case uint64:
@@ -363,9 +363,9 @@ func shiftRight(lval, rval interface{}) (interface{}, error) {
 	if rval == nil {
 		switch l := lval.(type) {
 		case float64:
-			return convertUintFromInt(int64(math.Round(l))), nil
+			return convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(l))), nil
 		case int64:
-			return convertUintFromInt(int64(math.Round(float64(l)))), nil
+			return convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(float64(l)))), nil
 		case uint64:
 			return l, nil
 		}
@@ -374,8 +374,8 @@ func shiftRight(lval, rval interface{}) (interface{}, error) {
 	case float64:
 		switch r := rval.(type) {
 		case float64:
-			left := convertUintFromInt(int64(math.Round(l)))
-			right := convertUintFromInt(int64(math.Round(r)))
+			left := convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(l)))
+			right := convertUintFromInt(sql.ClampFloatToInteger[int64](math.Round(r)))
 			return left >> right, nil
 		}
 	case uint64:

@@ -1250,7 +1250,7 @@ func (b *Builder) buildAlterAutoIncrement(inScope *scope, ddl *ast.DDL, table *p
 		if err != nil {
 			b.handleErr(err)
 		}
-		autoVal = uint64(f)
+		autoVal = sql.ClampFloatToInteger[uint64](f)
 	} else {
 		err := sql.ErrInvalidSQLValType.New(ddl.AutoIncSpec.Value)
 		b.handleErr(err)

@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"reflect"
 
 	"github.com/cockroachdb/apd/v3"
@@ -168,7 +169,10 @@ func (t BitType_) Convert(ctx context.Context, v interface{}) (interface{}, sql.
 		if val < 0 {
 			return nil, sql.InRange, fmt.Errorf(`negative floats cannot become bit values`)
 		}
-		value = uint64(val)
+		if val >= 0x1p64 || math.IsNaN(val) {
+			return nil, sql.Overflow, errBeyondMaxBit.New(val, t.numOfBits)
+		}
+		value = sql.ClampFloatToInteger[uint64](val)
 	case *apd.Decimal:
 		val, err := sql.DecimalRound(val, 0)
 		if err != nil {
