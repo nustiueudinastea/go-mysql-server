@@ -554,6 +554,7 @@ func (b *Builder) buildTableFunc(inScope *scope, t *ast.TableFuncExpr) (outScope
 		// TODO deferred tableFunction
 	}
 
+	b.validateFunctionArguments(utf.Arguments)
 	newInstance, err := tableFunction.NewInstance(b.ctx, database, utf.Arguments)
 	if err != nil {
 		b.handleErr(err)

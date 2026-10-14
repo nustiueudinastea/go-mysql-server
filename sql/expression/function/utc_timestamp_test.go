@@ -96,3 +96,24 @@ func TestUTCTimestamp(t *testing.T) {
 		})
 	}
 }
+
+func TestUTCTimestampValidatesBeforeEvaluatingArgument(t *testing.T) {
+	ctx := sql.NewEmptyContext()
+	calls := 0
+	arg := &constructorCounter{Literal: expression.NewLiteral(int64(0), types.Int64), calls: &calls}
+	rejected := fmt.Errorf("argument forbidden")
+	ctx.SetValidators(nil, func(*sql.Context, sql.Expression) error { return rejected })
+	_, err := NewUTCTimestamp(ctx, arg)
+	require.Zero(t, calls)
+	require.ErrorIs(t, err, rejected)
+}
+
+type constructorCounter struct {
+	*expression.Literal
+	calls *int
+}
+
+func (c *constructorCounter) Eval(*sql.Context, sql.Row) (interface{}, error) {
+	*c.calls++
+	return int64(0), nil
+}

@@ -743,3 +743,18 @@ filters or fall back to a scan.
 `TestRuleBasedContentHashedIndexRange` models legacy hash ordering, where `b` sorts
 before `a`: the pre-fix `s > 'a'` lookup returned only ID 3. The scan fallback returns
 IDs 2 and 3, including range and conjunction cases.
+
+### Review follow-up: validate before function construction
+
+The planbuilder validates every already-built argument tree immediately before
+scalar, aggregate, window and table function construction. `NewUTCTimestamp` also
+validates before its eager argument evaluation, including direct constructor calls;
+`NewUnixTimestamp` now reads literal metadata with `Value` instead of `Eval`.
+`TestConstructorEvalInventory` reviews every production constructor in
+`sql/expression/function` and requires the UTC_TIMESTAMP evaluation guard.
+
+`TestValidateFunctionArgumentsBeforeConstruction` and the direct constructor test
+both evaluated their rejected argument once before this fix and now evaluate it
+zero times. The review's GMS CREATE TABLE with SLEEP was already rejected at G8's
+scalar-return hook (`TestCreateTableRejectsSleepBeforeConstruction` passed before
+this follow-up); Dolt's separate D3 hook required pre-constructor integration.

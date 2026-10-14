@@ -428,6 +428,7 @@ func (b *Builder) newAggregation(e *ast.FuncExpr, name string, args []sql.Expres
 			b.handleErr(err)
 		}
 
+		b.validateFunctionArguments(args)
 		newInst, err := f.NewInstance(b.ctx, args)
 		if err != nil {
 			b.handleErr(err)
@@ -664,6 +665,7 @@ func (b *Builder) buildWindowFunc(inScope *scope, name string, e *ast.FuncExpr, 
 			b.handleErr(err)
 		}
 
+		b.validateFunctionArguments(args)
 		newInst, err := f.NewInstance(b.ctx, args)
 		if err != nil {
 			// MySQL reports unsupported DISTINCT window syntax before validating COUNT's argument count.

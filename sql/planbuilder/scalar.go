@@ -345,6 +345,7 @@ func (b *Builder) buildScalar(inScope *scope, e ast.Expr) (ex sql.Expression) {
 			}
 		}
 
+		b.validateFunctionArguments(args)
 		rf, err := f.NewInstance(b.ctx, args)
 		if err != nil {
 			b.handleErr(err)
@@ -527,6 +528,7 @@ func (b *Builder) buildScalar(inScope *scope, e ast.Expr) (ex sql.Expression) {
 				err := sql.ErrFunctionNotFound.New("values")
 				b.handleErr(err)
 			}
+			b.validateFunctionArguments([]sql.Expression{col})
 			values, err := fn.NewInstance(b.ctx, []sql.Expression{col})
 			if err != nil {
 				b.handleErr(err)
@@ -1359,4 +1361,14 @@ func findMatchAgainstIndex(cols []*expression.GetField, indexes []sql.Index, tab
 		}
 	}
 	return found
+}
+
+// Constructors may evaluate arguments to determine metadata. Validate the built
+// argument trees before handing them to any scalar, aggregate or table function.
+func (b *Builder) validateFunctionArguments(args []sql.Expression) {
+	for _, arg := range args {
+		if err := b.ctx.ValidateExpression(arg); err != nil {
+			b.handleErr(err)
+		}
+	}
 }

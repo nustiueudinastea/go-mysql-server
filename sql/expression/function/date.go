@@ -161,8 +161,8 @@ func NewUnixTimestamp(ctx *sql.Context, args ...sql.Expression) (sql.Expression,
 		return &UnixTimestamp{Date: arg, typ: types.Int64}, nil
 	}
 
-	date, err := lit.Eval(nil, nil)
-	if err != nil || date == nil {
+	date := lit.Value()
+	if date == nil {
 		return &UnixTimestamp{Date: arg}, nil
 	}
 	// special case: text types with fractional seconds preserve scale
@@ -185,7 +185,7 @@ func NewUnixTimestamp(ctx *sql.Context, args ...sql.Expression) (sql.Expression,
 			}
 		}
 	}
-	date, _, err = types.DatetimeMaxPrecision.Convert(ctx, date)
+	date, _, err := types.DatetimeMaxPrecision.Convert(ctx, date)
 	if err != nil {
 		return &UnixTimestamp{Date: arg}, nil
 	}

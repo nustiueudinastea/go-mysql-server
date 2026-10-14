@@ -40,6 +40,9 @@ func NewUTCTimestamp(ctx *sql.Context, args ...sql.Expression) (sql.Expression, 
 		if argType != types.Int64 && argType != types.Uint64 {
 			return nil, sql.ErrInvalidType.New(args[0].Type(ctx).String())
 		}
+		if err := ctx.ValidateExpression(args[0]); err != nil {
+			return nil, err
+		}
 		val, err := args[0].Eval(ctx, nil)
 		if err != nil {
 			return nil, err

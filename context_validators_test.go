@@ -364,3 +364,37 @@ func TestCallerPoliciesInProcedureAndTriggerBodies(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateFunctionArgumentsBeforeConstruction(t *testing.T) {
+	engine, ctx := validatorEngine(t)
+	calls, seen := 0, 0
+	engine.Analyzer.Catalog.RegisterFunction(ctx, sql.NewFunction0("validator_counter", func(*sql.Context) sql.Expression {
+		return &validatorCounter{expression.NewLiteral(int64(1), types.Int64), &calls}
+	}))
+	rejected := errors.New("argument rejected before constructor")
+	ctx.SetValidators(nil, func(_ *sql.Context, e sql.Expression) error {
+		if _, ok := e.(*validatorCounter); ok {
+			seen++
+			if seen > 1 {
+				return rejected
+			}
+		}
+		return nil
+	})
+	_, err := engine.AnalyzeQuery(ctx, "CREATE TABLE d (v DATETIME DEFAULT (`utc_timestamp`(validator_counter())))")
+	require.Zero(t, calls)
+	require.ErrorIs(t, err, rejected)
+}
+
+func TestCreateTableRejectsSleepBeforeConstruction(t *testing.T) {
+	engine, ctx := validatorEngine(t)
+	rejected := errors.New("sleep forbidden")
+	ctx.SetValidators(nil, func(_ *sql.Context, e sql.Expression) error {
+		if f, ok := e.(sql.FunctionExpression); ok && f.FunctionName() == "sleep" {
+			return rejected
+		}
+		return nil
+	})
+	_, err := engine.AnalyzeQuery(ctx, "CREATE TABLE d (v DATETIME DEFAULT (`utc_timestamp`(SLEEP(0))))")
+	require.ErrorIs(t, err, rejected)
+}
