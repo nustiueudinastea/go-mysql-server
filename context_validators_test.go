@@ -304,3 +304,63 @@ func TestContextValidatorsNotSQLSettable(t *testing.T) {
 		require.ErrorIs(t, ctx.ValidateNode(nil), rejected)
 	}
 }
+
+func TestCallerPoliciesInProcedureAndTriggerBodies(t *testing.T) {
+	for _, trigger := range []bool{false, true} {
+		for _, reject := range []bool{false, true} {
+			t.Run(fmt.Sprintf("trigger=%v/reject=%v", trigger, reject), func(t *testing.T) {
+				engine, ctx := validatorEngine(t)
+				calls := 0
+				engine.Analyzer.Catalog.RegisterFunction(ctx, sql.NewFunction0("validator_counter", func(*sql.Context) sql.Expression {
+					return &validatorCounter{expression.NewLiteral(int64(1), types.Int64), &calls}
+				}))
+				query := func(q string) error {
+					_, iter, _, err := engine.Query(ctx, q)
+					if err == nil {
+						_, err = sql.RowIterToRows(ctx, iter)
+					}
+					return err
+				}
+				body := "SELECT t.id FROM t JOIN u ON t.id = u.id"
+				if reject {
+					body = "SELECT validator_counter()"
+				}
+				require.NoError(t, query("CREATE PROCEDURE p() "+body))
+				q := "CALL p()"
+				if trigger {
+					require.NoError(t, query("CREATE TRIGGER tr BEFORE UPDATE ON t FOR EACH ROW CALL p()"))
+					q = "UPDATE t SET v = 30 WHERE id = 1"
+				}
+				calls = 0
+				coster := &countingPlanCoster{Coster: engine.Analyzer.Coster}
+				stats := &countingPlanStats{StatsProvider: engine.Analyzer.Catalog.StatsProvider}
+				engine.Analyzer.Coster, engine.Analyzer.Catalog.StatsProvider = coster, stats
+				ctx.SetDisableCostBasedPlans(true)
+				rejected := errors.New("procedure expression forbidden")
+				nodes := 0
+				ctx.SetValidators(func(got *sql.Context, _ sql.Node) error {
+					require.True(t, got.DisableCostBasedPlans())
+					nodes++
+					return nil
+				}, func(_ *sql.Context, e sql.Expression) error {
+					if reject {
+						if _, ok := e.(*validatorCounter); ok {
+							return rejected
+						}
+					}
+					return nil
+				})
+				err := query(q)
+				if reject {
+					require.ErrorIs(t, err, rejected)
+					require.Zero(t, calls)
+				} else {
+					require.NoError(t, err)
+				}
+				require.Positive(t, nodes)
+				require.Zero(t, coster.calls)
+				require.Zero(t, stats.calls)
+			})
+		}
+	}
+}

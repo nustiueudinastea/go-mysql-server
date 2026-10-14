@@ -713,3 +713,20 @@ GOARCH=amd64 go test -p 2 -count=1 -tags=gms_pure_go . ./sql/expression/function
 
 The owner waived wasm for G6. All changed Go files pass gofmt and
 `git diff --check`. Default Go caches are used; no caches are overridden or cleaned.
+
+### Review follow-up: caller policies in fresh contexts
+
+Fresh `sql.NewContext` calls inherit G7's flag and both G8 validators when their
+parent is a `*sql.Context`. Stored procedure statements pass that parent itself;
+this also covers procedures invoked by triggers. The new context still gets its
+own query time and option-selected session. `WithContext` already copies all
+policies and carries integrator context values (including Dolt D3).
+
+`TestFreshContextInventory` inventories production creation sites, with explicit
+classifications for caller propagation, initialization, metadata and formatting.
+Analyzer and subquery helpers use copy-derived contexts. Triggers use the caller;
+scheduled events execute in contexts supplied by the embedding scheduler's factory,
+which is an independent entry point and must install its own policies.
+`TestCallerPoliciesInProcedureAndTriggerBodies` rejects a precreated procedure's
+function without evaluation and observes zero cost hooks for joined bodies, both
+for CALL and a trigger invoking CALL. All four cases failed before this fix.

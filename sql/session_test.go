@@ -135,3 +135,14 @@ func TestContextValidators(t *testing.T) {
 	require.NoError(t, independent.ValidateNode(nil))
 	require.NoError(t, independent.ValidateExpression(nil))
 }
+
+func TestNewContextInheritsCallerPolicies(t *testing.T) {
+	ctx := NewEmptyContext()
+	ctx.SetDisableCostBasedPlans(true)
+	rejected := fmt.Errorf("caller policy")
+	ctx.SetValidators(func(*Context, Node) error { return rejected }, func(*Context, Expression) error { return rejected })
+	child := NewContext(ctx)
+	require.True(t, child.DisableCostBasedPlans())
+	require.ErrorIs(t, child.ValidateNode(nil), rejected)
+	require.ErrorIs(t, child.ValidateExpression(nil), rejected)
+}

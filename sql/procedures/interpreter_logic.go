@@ -957,7 +957,7 @@ func Call(ctx *sql.Context, iNode InterpreterNode) (sql.RowIter, *InterpreterSta
 			break
 		}
 
-		subCtx := sql.NewContext(ctx.Context)
+		subCtx := sql.NewContext(ctx)
 		subCtx.Session = ctx.Session
 
 		operation := statements[counter]

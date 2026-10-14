@@ -565,6 +565,8 @@ type ContextFactory func(context.Context, ...ContextOption) *Context
 // value will be used.
 // By default, the context will have an empty base session, a noop tracer and
 // a memory manager using the process reporter.
+// When ctx is a SQL context, its planning policies are inherited. Session and
+// query state still come from the options and fresh-context defaults.
 func NewContext(
 	ctx context.Context,
 	opts ...ContextOption,
@@ -574,6 +576,11 @@ func NewContext(
 		Session:   nil,
 		queryTime: Now(),
 		tracer:    NoopTracer,
+	}
+	if caller, ok := ctx.(*Context); ok {
+		c.disableCostBasedPlans = caller.disableCostBasedPlans
+		c.nodeValidator = caller.nodeValidator
+		c.expressionValidator = caller.expressionValidator
 	}
 	for _, opt := range opts {
 		opt(c)
