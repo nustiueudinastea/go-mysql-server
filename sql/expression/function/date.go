@@ -118,10 +118,7 @@ func evalNowType(ctx *sql.Context, now *Now) sql.Type {
 	if !ok {
 		return types.MustCreateDecimalType(19, 6)
 	}
-	prec, pErr := lit.Eval(nil, nil)
-	if pErr != nil {
-		return nil
-	}
+	prec := lit.Value()
 	scale, ok := types.CoalesceInt(prec)
 	if !ok {
 		return nil

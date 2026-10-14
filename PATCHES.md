@@ -758,3 +758,8 @@ both evaluated their rejected argument once before this fix and now evaluate it
 zero times. The review's GMS CREATE TABLE with SLEEP was already rejected at G8's
 scalar-return hook (`TestCreateTableRejectsSleepBeforeConstruction` passed before
 this follow-up); Dolt's separate D3 hook required pre-constructor integration.
+
+The constructor inventory also follows calls to package-local helpers. This found
+`NewUnixTimestamp`'s `evalNowType` helper reading a precision literal through Eval;
+it now reads Value directly. Moving an Eval into a new helper cannot bypass the
+inventory. The inventory failed on this helper before its removal.

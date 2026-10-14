@@ -37,6 +37,50 @@ func TestConstructorEvalInventory(t *testing.T) {
 	want := map[string][]string{
 		"utc_timestamp.go:NewUTCTimestamp:args[0].Eval": {validated},
 	}
+	// Follow constructor calls to package-local helpers, so moving an Eval
+	// into a helper cannot evade the inventory.
+	functions := make(map[string]*ast.FuncDecl)
+	reachable := make(map[string]bool)
+	err := filepath.WalkDir(".", func(path string, d os.DirEntry, err error) error {
+		require.NoError(t, err)
+		if d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") || strings.Contains(path, "jsontests") {
+			return nil
+		}
+		file, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+		require.NoError(t, err)
+		for _, decl := range file.Decls {
+			if fn, ok := decl.(*ast.FuncDecl); ok && fn.Recv == nil {
+				functions[filepath.Dir(path)+":"+fn.Name.Name] = fn
+			}
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	var visit func(string)
+	visit = func(key string) {
+		if reachable[key] {
+			return
+		}
+		fn := functions[key]
+		if fn == nil {
+			return
+		}
+		reachable[key] = true
+		dir := key[:strings.LastIndex(key, ":")]
+		ast.Inspect(fn.Body, func(n ast.Node) bool {
+			if call, ok := n.(*ast.CallExpr); ok {
+				if fn, ok := call.Fun.(*ast.Ident); ok {
+					visit(dir + ":" + fn.Name)
+				}
+			}
+			return true
+		})
+	}
+	for key, fn := range functions {
+		if strings.HasPrefix(fn.Name.Name, "New") || strings.HasPrefix(fn.Name.Name, "new") {
+			visit(key)
+		}
+	}
 	found := make(map[string][]string)
 	fset := token.NewFileSet()
 	for _, root := range []string{"."} {
@@ -62,7 +106,7 @@ func TestConstructorEvalInventory(t *testing.T) {
 					if fn.Body == nil {
 						continue
 					}
-					if fn.Recv != nil || !(strings.HasPrefix(fn.Name.Name, "New") || strings.HasPrefix(fn.Name.Name, "new")) {
+					if fn.Recv != nil || !reachable[filepath.Dir(path)+":"+fn.Name.Name] {
 						continue
 					}
 					name, body = fn.Name.Name, fn.Body
