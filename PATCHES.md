@@ -837,3 +837,16 @@ The required enginetest selection passes; complete enginetest has only the same
 regressions and independent rational-rounding tests pass on native arm64 and
 amd64 through Rosetta. All checks use -p 2, -count=1 and gms_pure_go, with default
 Go caches. Gofmt and whitespace checks pass.
+
+
+Review-fix commit index (all appended, signed, and unpushed):
+
+- Caller inheritance: 2572e684f; allocation inventory: 8d6d61f25; direct trigger
+  regression coverage: cacc31507.
+- Shared content-hash eligibility: 3471ba1a8.
+- Pre-constructor validation: ed7938d89; helper evaluation inventory: d95c511dd.
+- Numeric findings 4–7 and their result-boundary/byte expectations: 00f705502.
+
+Dolt's corresponding fixes are 6da743602 (resolver/wrapper contexts), 8043a8875
+(generic row iterators), b55f914e5 (pre-constructor adapters) and 08b85381d
+(coverage of all three schema resolver paths).

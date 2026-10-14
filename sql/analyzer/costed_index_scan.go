@@ -1662,9 +1662,8 @@ func (c *indexCoster) costIndexScanOr(ctx *sql.Context, filter *iScanOr, s sql.S
 	return ret, nil, true, nil
 }
 
-// indexHasContentHashedFieldForFilter returns true if the given index |idx| has a content-hashed field that is used
-// by the given filter |filter|. |ordinals| provides a mapping from filter expression to position in |idx|. Indexes
-// with content-hashed fields can only be used for a subset of filter operations.
+// indexHasContentHashedFieldForFilter reports whether the indexed column at i
+// uses content hashes. Such columns support only a subset of filter operators.
 func indexHasContentHashedFieldForFilter(ctx *sql.Context, idx sql.Index, i int) bool {
 	// Only unique indexes are currently able to use content-hashed fields
 	if !idx.IsUnique() {
