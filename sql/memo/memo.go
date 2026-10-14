@@ -395,6 +395,24 @@ func (m *Memo) optimizeMemoGroup(ctx *sql.Context, grp *ExprGroup) error {
 		return nil
 	}
 
+	if ctx.DisableCostBasedPlans() {
+		// Direct memo users retain the first implementation in each group.
+		// Analyzer callers skip memo construction altogether in this mode.
+		n := grp.First
+		for _, child := range n.Children() {
+			if err := m.optimizeMemoGroup(ctx, child); err != nil {
+				return err
+			}
+		}
+		if grp.RelProps.Distinct.IsHash() {
+			n.SetDistinct(HashDistinctOp, grp.RelProps.DistinctOn...)
+		} else {
+			n.SetDistinct(NoDistinctOp)
+		}
+		grp.Best, grp.Done, grp.HintOk = n, true, true
+		return nil
+	}
+
 	m.Tracer.PushDebugContextFmt("optimizeMemoGroup/%d", grp.Id)
 	defer m.Tracer.PopDebugContext()
 
@@ -807,10 +825,11 @@ func (r *relBase) Cost() float64 {
 }
 
 func DescribeStats(r RelExpr) *sql.DescribeStats {
-	return &sql.DescribeStats{
-		EstimatedRowCount: r.Group().RelProps.GetStats().RowCount(),
-		Cost:              r.Cost(),
+	description := &sql.DescribeStats{Cost: r.Cost()}
+	if stats := r.Group().RelProps.GetStats(); stats != nil {
+		description.EstimatedRowCount = stats.RowCount()
 	}
+	return description
 }
 
 func TableIdForSource(id GroupId) sql.TableId {

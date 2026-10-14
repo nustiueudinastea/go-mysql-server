@@ -75,7 +75,9 @@ func (b *Batch) evalOnce(ctx *sql.Context, a *Analyzer, n sql.Node, scope *plan.
 		prev    = n
 	)
 	for _, rule := range b.Rules {
-		if !sel(rule.Id) {
+		// Apply this here as well as at the rule entry point so shortened
+		// SELECT, UPDATE, and DELETE batches obey the same context policy.
+		if !sel(rule.Id) || (ctx.DisableCostBasedPlans() && rule.Id == optimizeJoinsId) {
 			a.Log("Skipping rule %s", rule.Id)
 			continue
 		}

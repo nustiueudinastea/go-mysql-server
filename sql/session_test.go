@@ -98,3 +98,19 @@ func TestSessionIterator(t *testing.T) {
 		counter++
 	}
 }
+
+func TestDisableCostBasedPlansContext(t *testing.T) {
+	ctx := NewEmptyContext()
+	require.False(t, ctx.DisableCostBasedPlans())
+	ctx.SetDisableCostBasedPlans(true)
+	require.True(t, ctx.DisableCostBasedPlans())
+	require.True(t, ctx.WithContext(context.Background()).DisableCostBasedPlans())
+	require.True(t, ctx.WithQuery("SELECT 1").DisableCostBasedPlans())
+	child, cancel := ctx.NewSubContext()
+	defer cancel()
+	require.True(t, child.DisableCostBasedPlans())
+	child.SetDisableCostBasedPlans(false)
+	require.True(t, ctx.DisableCostBasedPlans())
+	ctx.SetDisableCostBasedPlans(false)
+	require.False(t, ctx.DisableCostBasedPlans())
+}

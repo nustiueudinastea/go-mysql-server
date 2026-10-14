@@ -170,6 +170,9 @@ func (j *joinOrderBuilder) ReorderJoin(ctx *sql.Context, n sql.Node) {
 	defer j.m.Tracer.PopDebugContext()
 
 	j.populateSubgraph(ctx, n)
+	if ctx.DisableCostBasedPlans() {
+		return
+	}
 
 	if j.useFastReorder() {
 		j.m.Tracer.Log("Using fast reorder algorithm (large join with %d tables)", len(j.vertices))

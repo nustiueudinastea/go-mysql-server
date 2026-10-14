@@ -317,6 +317,20 @@ type Context struct {
 	// (rowexec spans) can be redacted with the same tokens as the
 	// parsed query.
 	redactionMapping *sqlredact.Mapping
+
+	disableCostBasedPlans bool
+}
+
+// SetDisableCostBasedPlans controls whether analysis may choose plans using cost
+// estimates. This is an embedding API option, independent of SQL session variables.
+// Set it before analyzing a query. Derived contexts inherit the setting.
+func (c *Context) SetDisableCostBasedPlans(disable bool) {
+	c.disableCostBasedPlans = disable
+}
+
+// DisableCostBasedPlans reports whether cost-based plan selection is disabled.
+func (c *Context) DisableCostBasedPlans() bool {
+	return c.disableCostBasedPlans
 }
 
 // ContextOption is a function to configure the context.

@@ -63,6 +63,10 @@ func costedIndexScans(
 	node sql.Node,
 	qFlags *sql.QueryFlags,
 ) (sql.Node, transform.TreeIdentity, error) {
+	if ctx != nil && ctx.DisableCostBasedPlans() {
+		return node, transform.SameTree, nil
+	}
+
 	planReturnsRowIter := rowIterExprChecker(ctx, node)
 	return transform.Node(ctx, node, func(ctx *sql.Context, n sql.Node) (sql.Node, transform.TreeIdentity, error) {
 		filter, ok := n.(*plan.Filter)
@@ -226,6 +230,10 @@ func getCostedIndexScan(
 	qFlags *sql.QueryFlags,
 	planReturnsRowIter func() bool,
 ) (*plan.IndexedTableAccess, sql.Statistic, []sql.Expression, error) {
+	if ctx.DisableCostBasedPlans() {
+		return nil, nil, nil, nil
+	}
+
 	// run each index through coster, save the cheapest
 	tbl := tblNode.UnderlyingTable()
 	idxTbl, isIdxTbl := tbl.(sql.IndexAddressableTable)
@@ -458,6 +466,10 @@ func getCostedIndexScan(
 }
 
 func addIndexScans(ctx *sql.Context, m *memo.Memo, catalog *Catalog) error {
+	if ctx.DisableCostBasedPlans() {
+		return nil
+	}
+
 	m.Tracer.PushDebugContext("addIndexScans")
 	defer m.Tracer.PopDebugContext()
 
@@ -599,6 +611,10 @@ type indexCoster struct {
 // cost tries to build the lowest cardinality index scan for an expression
 // tree rooted at |f| on the index |idx| whose statistics are represented by |stat|.
 func (c *indexCoster) cost(ctx *sql.Context, f indexFilter, stat sql.Statistic, idx sql.Index, isCov bool) error {
+	if ctx.DisableCostBasedPlans() {
+		return nil
+	}
+
 	ordinals := ordinalsForStat(stat)
 
 	var newHist []sql.HistogramBucket
