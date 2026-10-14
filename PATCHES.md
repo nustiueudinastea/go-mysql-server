@@ -763,3 +763,7 @@ The constructor inventory also follows calls to package-local helpers. This foun
 `NewUnixTimestamp`'s `evalNowType` helper reading a precision literal through Eval;
 it now reads Value directly. Moving an Eval into a new helper cannot bypass the
 inventory. The inventory failed on this helper before its removal.
+
+The fresh-context inventory includes raw Context literals and allocations as well
+as constructor calls. The factory's literal is explicitly classified; new raw
+allocations fail the inventory until reviewed.

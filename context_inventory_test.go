@@ -31,6 +31,7 @@ func TestFreshContextInventory(t *testing.T) {
 	root := "."
 	const inherits = "propagates caller policies"
 	want := map[string][]string{
+		"sql/session.go:NewContext:allocation":                   {"factory copies caller policies; behavior tested"},
 		"engine.go:New":                                          {"engine initialization; no caller"},
 		"driver/conn.go:newContextWithQuery":                     {inherits},
 		"driver/context.go:NewContext":                           {inherits},
@@ -70,6 +71,33 @@ func TestFreshContextInventory(t *testing.T) {
 				name = fn.Name.Name
 			}
 			ast.Inspect(decl, func(n ast.Node) bool {
+				isContext := func(expr ast.Expr) bool {
+					switch typ := expr.(type) {
+					case *ast.Ident:
+						return typ.Name == "Context" && filepath.Dir(rel) == "sql"
+					case *ast.SelectorExpr:
+						qualifier, ok := typ.X.(*ast.Ident)
+						return ok && qualifier.Name == "sql" && typ.Sel.Name == "Context"
+					}
+					return false
+				}
+				allocation := false
+				if lit, ok := n.(*ast.CompositeLit); ok {
+					allocation = isContext(lit.Type)
+				}
+				if call, ok := n.(*ast.CallExpr); ok {
+					if fn, ok := call.Fun.(*ast.Ident); ok && fn.Name == "new" && len(call.Args) == 1 {
+						allocation = isContext(call.Args[0])
+					}
+				}
+				if allocation {
+					key := rel + ":" + name + ":allocation"
+					classification := "UNCLASSIFIED"
+					if entries := want[key]; len(found[key]) < len(entries) {
+						classification = entries[len(found[key])]
+					}
+					found[key] = append(found[key], classification)
+				}
 				call, ok := n.(*ast.CallExpr)
 				if !ok {
 					return true
