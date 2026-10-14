@@ -58,6 +58,7 @@ var (
 type DecimalType_ struct {
 	exclusiveUpperBound *apd.Decimal
 	definesColumn       bool
+	displayScale        bool
 	precision           uint8
 	scale               uint8
 }
@@ -116,6 +117,15 @@ func CreateLiteralDecimalType(precision, scale uint8) sql.DecimalType {
 		precision:           precision,
 		scale:               scale,
 	}
+}
+
+// CreateAggregateDecimalType describes an expression result, not a stored
+// column. Its precision may exceed the column limit; its declared scale applies
+// at SQL serialization. Internal decimal values retain their division precision.
+func CreateAggregateDecimalType(precision, scale uint8) sql.DecimalType {
+	t := CreateLiteralDecimalType(precision, scale).(DecimalType_)
+	t.displayScale = true
+	return t
 }
 
 // MustCreateDecimalType is the same as CreateDecimalType except it panics on errors and for NON-TABLE-COLUMN.
@@ -183,6 +193,11 @@ func (t DecimalType_) Convert(c context.Context, v interface{}) (interface{}, sq
 	}
 	if dec == nil {
 		return nil, sql.InRange, nil
+	}
+	// Expression aggregates and the internal comparison/conversion type must
+	// preserve division precision. Stored-column types still round and bound.
+	if t.displayScale || t == InternalDecimalType {
+		return dec, sql.InRange, err
 	}
 	res, inRange, cErr := t.BoundsCheck(dec)
 	if cErr != nil {
@@ -307,6 +322,9 @@ func (t DecimalType_) MaxTextResponseByteLength(*sql.Context) uint32 {
 
 // Promote implements the Type interface.
 func (t DecimalType_) Promote() sql.Type {
+	if t.displayScale {
+		return CreateAggregateDecimalType(max(t.precision, DecimalTypeMaxPrecision), t.scale)
+	}
 	if t.definesColumn {
 		return MustCreateColumnDecimalType(DecimalTypeMaxPrecision, t.scale)
 	}
@@ -382,27 +400,28 @@ func (t DecimalType_) Scale() uint8 {
 }
 
 // DecimalValueStringFixed returns the string for the given decimal value.
-// If the decimal type value is for the valid table column only, it should use scale defined by the column.
-// Otherwise, the result value should use its own precision and scale.
+// Stored columns and aggregate results use their declared scale at this result
+// boundary. Other expression types keep the value's own exponent.
 func (t DecimalType_) DecimalValueStringFixed(v *apd.Decimal) string {
-	if t.definesColumn {
-		if int32(t.scale) != v.Exponent {
-			v, _ = sql.DecimalRound(v, int32(t.scale))
-		}
-	}
+	v = t.resultDecimal(v)
 	return v.Text('f')
 }
 
 // AppendStringFixedDecimal appends the decimal value to the given []byte dest.
-// If the decimal type value is for the valid table column only, it should use scale defined by the column.
-// Otherwise, the result value should use its own precision and scale.
+// Stored columns and aggregate results use their declared scale at this result
+// boundary. Other expression types keep the value's own exponent.
 func (t DecimalType_) AppendStringFixedDecimal(dest []byte, v *apd.Decimal) []byte {
-	if t.definesColumn {
-		if int32(t.scale) != v.Exponent {
-			v, _ = sql.DecimalRound(v, int32(t.scale))
-		}
-	}
+	v = t.resultDecimal(v)
 	return v.Append(dest, 'f')
+}
+
+// resultDecimal applies display/storage scale without changing the internal
+// expression value.
+func (t DecimalType_) resultDecimal(v *apd.Decimal) *apd.Decimal {
+	if (t.definesColumn || t.displayScale) && -int32(t.scale) != v.Exponent {
+		v, _ = sql.DecimalRound(v, int32(t.scale))
+	}
+	return v
 }
 
 func convertValueToDecimal(ctx *sql.Context, v sql.Value) (*apd.Decimal, error) {

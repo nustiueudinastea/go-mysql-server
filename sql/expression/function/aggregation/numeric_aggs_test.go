@@ -15,6 +15,8 @@
 package aggregation
 
 import (
+	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/cockroachdb/apd/v3"
@@ -42,7 +44,7 @@ func TestNumericAggregateTypes(t *testing.T) {
 		{types.Int64, 41, 23, 0, 4},
 		{types.Uint64, 42, 24, 0, 4},
 		{types.MustCreateDecimalType(10, 3), 32, 14, 3, 7},
-		{types.MustCreateDecimalType(65, 30), 65, 65, 30, 30},
+		{types.MustCreateDecimalType(65, 30), 65, 69, 30, 30},
 	} {
 		t.Run(test.typ.String(), func(t *testing.T) {
 			field := expression.NewGetField(0, test.typ, "v", true)
@@ -90,5 +92,26 @@ func TestExactAveragePrecisionIncrement(t *testing.T) {
 	}
 	result, err := buffer.Eval(ctx)
 	require.NoError(t, err)
-	require.Equal(t, "0.333333333", result.(*apd.Decimal).Text('f'))
+	require.Equal(t, "0.333333333", averageWire(t, ctx, avg, result))
+}
+
+func TestDecimalAverageRounding(t *testing.T) {
+	for _, increment := range []int64{0, 4} {
+		ctx := sql.NewEmptyContext()
+		require.NoError(t, ctx.SetSessionVariable(ctx, "div_precision_increment", increment))
+		child := expression.NewGetField(0, types.Int64, "v", true)
+		typ := numericAggregateType(ctx, child, true)
+		for _, sum := range []int64{0, 1, -1, 5, -5, 49994999999, -49994999999, 99999999999} {
+			for _, count := range []int64{2, 3, 11, 100000000000} {
+				t.Run(fmt.Sprintf("%d/%d/scale%d", sum, count, increment), func(t *testing.T) {
+					result, err := decimalAggregateResult(ctx, child, apd.New(sum, 0), count, true)
+					require.NoError(t, err)
+					wire, err := typ.SQL(ctx, nil, result)
+					require.NoError(t, err)
+					want := new(big.Rat).SetFrac64(sum, count).FloatString(int(increment))
+					require.Equal(t, want, wire.ToString())
+				})
+			}
+		}
+	}
 }

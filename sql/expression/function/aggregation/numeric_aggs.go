@@ -70,9 +70,9 @@ func numericAggregateType(ctx *sql.Context, child sql.Expression, average bool) 
 		precision += increment
 		scale += increment
 	} else {
-		precision += 22
+		precision = min(precision+22, types.DecimalTypeMaxPrecision)
 	}
-	return types.MustCreateDecimalType(uint8(min(precision, types.DecimalTypeMaxPrecision)), uint8(min(scale, types.DecimalTypeMaxScale)))
+	return types.CreateAggregateDecimalType(uint8(precision), uint8(min(scale, types.DecimalTypeMaxScale)))
 }
 
 func aggregatePrecisionIncrement(ctx *sql.Context) int {
@@ -83,10 +83,37 @@ func aggregatePrecisionIncrement(ctx *sql.Context) int {
 }
 
 func decimalAggregateResult(ctx *sql.Context, child sql.Expression, sum *apd.Decimal, count int64, average bool) (interface{}, error) {
-	typ := numericAggregateType(ctx, child, average).(sql.DecimalType)
-	if average {
-		sum = types.DecimalDiv(sum, types.DecimalFromInt64(count), int32(typ.Scale()), false)
+	if !average {
+		return new(apd.Decimal).Set(sum), nil
 	}
-	result, _, err := typ.Convert(ctx, sum)
-	return result, err
+	// MySQL decimal division keeps fractional capacity in nine-digit groups,
+	// independently of the result's display scale (capped at 30). Keep at least
+	// guard digits so boundary rounding never rounds an already-rounded
+	// quotient. Column conversion and SQL serialization are the result boundaries.
+	scale := int32(numericAggregateType(ctx, child, true).(sql.DecimalType).Scale())
+	if d, ok := child.Type(ctx).(sql.DecimalType); ok {
+		scale = max(scale, int32(d.Scale())+int32(aggregatePrecisionIncrement(ctx)))
+	}
+	// Also retain enough places for a nonzero input divided by any row count.
+	scale = max(scale+1, -sum.Exponent+int32(types.DecimalFromInt64(count).NumDigits()))
+	scale = ((scale + 8) / 9) * 9
+	var numerator, denominator, power, quotient, remainder apd.BigInt
+	power.Exp(apd.NewBigInt(10), apd.NewBigInt(int64(scale+sum.Exponent)), nil)
+	numerator.Mul(&sum.Coeff, &power)
+	denominator.SetInt64(count)
+	quotient.QuoRem(&numerator, &denominator, &remainder)
+	// Derive one more actual quotient digit from a nonzero remainder. Do not round the
+	// quotient here: DecimalRound at the result boundary must round only once.
+	if remainder.Sign() != 0 {
+		quotient.Mul(&quotient, apd.NewBigInt(10))
+		remainder.Mul(&remainder, apd.NewBigInt(10))
+		var digit apd.BigInt
+		digit.Quo(&remainder, &denominator)
+		quotient.Add(&quotient, &digit)
+		scale++
+	}
+	result := apd.New(0, -scale)
+	result.Coeff.Set(&quotient)
+	result.Negative = sum.Negative && result.Coeff.Sign() != 0
+	return result, nil
 }

@@ -901,6 +901,14 @@ func WidenRow(t *testing.T, sch sql.Schema, row sql.Row) sql.Row {
 			continue
 		}
 
+		// Decimal expression values can retain more precision than their
+		// declared result scale. Compare the same text the SQL wire emits.
+		if dec, ok := v.(*apd.Decimal); ok && i < len(sch) {
+			if typ, ok := sch[i].Type.(interface{ DecimalValueStringFixed(*apd.Decimal) string }); ok {
+				widened[i] = typ.DecimalValueStringFixed(dec)
+				continue
+			}
+		}
 		widened[i] = widenValue(t, v)
 	}
 	return widened

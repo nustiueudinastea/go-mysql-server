@@ -91,9 +91,9 @@ func TestExactNumericAggregates(t *testing.T) {
 					for _, row := range rows[1:] {
 						expected, _, err := apd.NewFromString(fmt.Sprint(row[1]))
 						require.NoError(t, err)
-						result, ok := row[0].(*apd.Decimal)
-						require.True(t, ok)
-						require.Zero(t, result.Cmp(expected))
+						expected, err = sql.DecimalRound(expected, int32(agg.scale))
+						require.NoError(t, err)
+						assertNumericAggregate(t, schema[0], row[0], agg.precision, agg.scale, expected.Text('f'))
 					}
 				})
 			}
@@ -107,9 +107,61 @@ func assertNumericAggregate(t *testing.T, col *sql.Column, value interface{}, pr
 	require.True(t, ok, "type: %v", col.Type)
 	require.Equal(t, precision, typ.Precision())
 	require.Equal(t, scale, typ.Scale())
-	result, ok := value.(*apd.Decimal)
+	_, ok = value.(*apd.Decimal)
 	require.True(t, ok, "value: %T %v", value, value)
-	want, _, err := apd.NewFromString(expected)
+	wire, err := typ.SQL(sql.NewEmptyContext(), nil, value)
 	require.NoError(t, err)
-	require.Zero(t, result.Cmp(want), "got %s, want %s", result, want)
+	require.Equal(t, expected, wire.ToString(), "aggregate wire bytes")
+}
+
+func TestAverageReviewRegressions(t *testing.T) {
+	for _, test := range []struct {
+		name, ddl, values, query, expected string
+		increment                          int64
+	}{
+		{"single rounding", "INT", "(5),(0),(0),(0),(0),(0),(0),(0),(0),(0),(0)", "SELECT AVG(v) FROM n", "0.4545", 4},
+		{"single rounding zero increment", "INT", "(5),(0),(0),(0),(0),(0),(0),(0),(0),(0),(0)", "SELECT AVG(v) FROM n", "0", 0},
+		{"grouped rounding", "INT", "(5),(0),(0),(0),(0),(0),(0),(0),(0),(0),(0)", "SELECT AVG(v) FROM n GROUP BY 1=1", "0.4545", 4},
+		{"moving window rounding", "INT", "(0),(5),(0),(0),(0),(0),(0),(0),(0),(0),(0),(0)", "SELECT AVG(v) OVER (ORDER BY id ROWS BETWEEN 10 PRECEDING AND CURRENT ROW) FROM n ORDER BY id DESC LIMIT 1", "0.4545", 4},
+		{"moving window zero increment", "INT", "(0),(5),(0),(0),(0),(0),(0),(0),(0),(0),(0),(0)", "SELECT AVG(v) OVER (ORDER BY id ROWS BETWEEN 10 PRECEDING AND CURRENT ROW) FROM n ORDER BY id DESC LIMIT 1", "0", 0},
+		{"full internal scale", "DECIMAL(65,30)", "(0),(0),(0.000000000000000000000000000001)", "SELECT AVG(v)>0 FROM n", "1", 4},
+		{"window internal scale", "DECIMAL(65,30)", "(0),(0),(0.000000000000000000000000000001)", "SELECT AVG(v) OVER ()>0 FROM n LIMIT 1", "1", 4},
+		{"large average", "DECIMAL(65,0)", "(CAST(REPEAT('9',65) AS DECIMAL(65,0)))", "SELECT AVG(v) FROM n", "99999999999999999999999999999999999999999999999999999999999999999.0000", 4},
+		{"large cast average", "INT", "(0)", "SELECT AVG(CAST(REPEAT('9',65) AS DECIMAL(65,0))) FROM n", "99999999999999999999999999999999999999999999999999999999999999999.0000", 4},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			engine, ctx := validatorEngine(t)
+			require.NoError(t, ctx.SetSessionVariable(ctx, "div_precision_increment", test.increment))
+			query := func(q string) (sql.Schema, []sql.Row) {
+				sch, iter, _, err := engine.Query(ctx, q)
+				require.NoError(t, err, q)
+				rows, err := sql.RowIterToRows(ctx, iter)
+				require.NoError(t, err, q)
+				return sch, rows
+			}
+			query("CREATE TABLE n (id INT AUTO_INCREMENT PRIMARY KEY, v " + test.ddl + ")")
+			query("INSERT INTO n(v) VALUES " + test.values)
+			sch, rows := query(test.query)
+			require.Len(t, rows, 1)
+			wire, err := sch[0].Type.SQL(ctx, nil, rows[0][0])
+			require.NoError(t, err)
+			require.Equal(t, test.expected, wire.ToString())
+		})
+	}
+}
+
+func TestAverageDeclaredScale(t *testing.T) {
+	engine, ctx := validatorEngine(t)
+	for _, query := range []string{"SELECT AVG(0)", "SELECT AVG(0) FROM t GROUP BY v", "SELECT AVG(0) OVER () FROM t"} {
+		sch, iter, _, err := engine.Query(ctx, query)
+		require.NoError(t, err)
+		rows, err := sql.RowIterToRows(ctx, iter)
+		require.NoError(t, err)
+		require.NotEmpty(t, rows)
+		for _, row := range rows {
+			wire, err := sch[0].Type.SQL(ctx, nil, row[0])
+			require.NoError(t, err)
+			require.Equal(t, "0.0000", wire.ToString())
+		}
+	}
 }

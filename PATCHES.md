@@ -330,7 +330,7 @@ Files (behavior commit and shared validation follow-up):
 - `PATCHES.md` (shared inventory)
 
 For an exact argument with precision p and scale s, SUM returns
-DECIMAL(min(p+22,65),s). AVG returns DECIMAL(min(p+d,65),min(s+d,30)), with
+DECIMAL(min(p+22,65),s). AVG returns DECIMAL(p+d,min(s+d,30)), with
 session `div_precision_increment` d (default 4). Integer columns have scale
 zero and precision 3/5/7/10/19 for signed TINYINT/SMALLINT/MEDIUMINT/INT/BIGINT,
 and 3/5/8/10/20 for unsigned versions; integer literals use their digit count
@@ -341,8 +341,9 @@ and [precision math examples](https://dev.mysql.com/doc/refman/8.4/en/precision-
 
 Grouped SUM/AVG and DISTINCT variants accumulate exact inputs directly in
 apd decimals, without float intermediates. Window SUM/AVG use independent
-exact decimal prefixes and exact subtraction for moving frames. AVG divides
-at the result scale, and final results are range checked. NULL-only and empty
+exact decimal prefixes and exact subtraction for moving frames. AVG retains
+internal division precision; serialization rounds to the declared result scale,
+and stored-column conversion applies the destination bounds. NULL-only and empty
 inputs/frames still return NULL. Approximate arguments retain DOUBLE.
 
 Previous MySQL discrepancies corrected:
@@ -357,7 +358,7 @@ Previous MySQL discrepancies corrected:
 - Exact DISTINCT aggregates inherit these rules. MySQL disallows DISTINCT
   SUM/AVG windows; the existing SQL error tests require that same rejection.
 - Exact accumulator conversion/add errors propagate instead of silent
-  fallback to zero or discarded decimal-add errors; result bounds now apply.
+  fallback to zero or discarded decimal-add errors.
 
 Retained differences and scope:
 
@@ -368,10 +369,12 @@ Retained differences and scope:
   have fixed-width metadata instead of MySQL's expression-specific precision.
   Argument evaluation itself can already have lost precision, for example
   inside GMS division's existing floating-point path; this patch cannot recover it.
-- Internal decimal sums are arbitrary precision, unlike MySQL's fixed-size
-  buffers. Final output enforces precision/scale, but extreme intermediate
-  overflow followed by cancellation can have different error timing. Errors
-  retain GMS error types.
+- Internal decimal sums use arbitrary precision, unlike MySQL's fixed-size
+  buffers. AVG also retains quotient guard digits beyond MySQL's finite buffer
+  capacity. Stored-column conversion enforces destination precision/scale;
+  bare expression serialization applies display scale without a column-shaped
+  integer limit. Extreme values and overflow timing can therefore differ from
+  MySQL. Errors retain GMS error types.
 - Existing conversions of malformed strings, temporal values, ENUM/SET, BIT,
   and other non-integer/non-DECIMAL types remain unchanged and can differ from
   MySQL's numeric conversions. They remain on GMS's DOUBLE path. DISTINCT
@@ -382,7 +385,7 @@ Retained differences and scope:
   produce numeric zero. Internal apd values can omit trailing zeroes; wire
   formatting uses the declared scale.
 
-`TestExactNumericAggregates` checks schema precision/scale and exact values
+`TestExactNumericAggregates` checks schema precision/scale and exact wire bytes
 for SUM, AVG, SUM DISTINCT, AVG DISTINCT, GROUP BY, and windows over INT,
 near-limit BIGINT UNSIGNED, and DECIMAL(10,3), plus NULL-only inputs and moving
 one-row frames with nonzero partition offsets. The unsigned sum is exactly
@@ -429,7 +432,9 @@ Files:
 `ctx.SetDisableCostBasedPlans(true)` enables an embedding-only policy; the
 unexported context field defaults to false. Derived contexts (including spans
 and subqueries) inherit it. SQL system/user variables cannot change it, and
-a new context sharing the session starts with the default. Set it before analysis.
+a new context made from a plain context and sharing only the session starts
+with the default. A SQL parent carries its policies into fresh contexts as well.
+Set it before analysis.
 
 The shared `Batch.evalOnce` skips `optimizeJoinsId`, including all three
 hard-coded occurrences in `node_batches.go` (simple SELECT, UPDATE, DELETE).
@@ -730,6 +735,9 @@ which is an independent entry point and must install its own policies.
 `TestCallerPoliciesInProcedureAndTriggerBodies` rejects a precreated procedure's
 function without evaluation and observes zero cost hooks for joined bodies, both
 for CALL and a trigger invoking CALL. All four cases failed before this fix.
+`TestCallerPoliciesInDirectTriggerBody` also covers inline trigger expressions
+and joined subqueries. Both direct cases already passed on initial e94658573;
+no direct-trigger production change was needed.
 
 ### Review follow-up: content-hashed index eligibility
 
@@ -767,3 +775,65 @@ inventory. The inventory failed on this helper before its removal.
 The fresh-context inventory includes raw Context literals and allocations as well
 as constructor calls. The factory's literal is explicitly classified; new raw
 allocations fail the inventory until reviewed.
+
+
+### Review follow-up: AVG precision and aggregate result boundaries
+
+The four numeric findings are fixed together. AVG divides with integer quotient
+and remainder, retaining unrounded quotient digits and a real guard digit derived
+from the remainder. Both grouped and moving-frame paths use this helper. Integer
+arithmetic supplies enough fractional capacity for the argument scale, division
+increment and row-count magnitude. This prevents double rounding and preserves
+positive values below the display scale. AVG expression precision is p+d, including
+69 digits for a DECIMAL(65,0) input at the default increment; the 65-digit limit
+still applies to declared stored columns. Aggregate and internal decimal conversion
+retain expression precision instead of applying column-shaped bounds.
+
+This separates expression evaluation from result formatting as in MySQL 8.0's
+[item_sum.cc](https://github.com/mysql/mysql-server/blob/mysql-8.0.36/sql/item_sum.cc#L2159)
+and [expression metadata setter](https://github.com/mysql/mysql-server/blob/mysql-8.0.36/sql/item.h#L1330).
+The [decimal division implementation](https://github.com/mysql/mysql-server/blob/mysql-8.0.36/strings/decimal.cc#L2064)
+uses nine-digit fractional groups. GMS uses arbitrary-size coefficients and extra
+guards, so extreme internal precision and overflow timing remain a documented
+difference from MySQL's finite decimal buffers.
+
+A **result boundary** here means text/wire serialization through the returned
+column type's SQL or SQLValue method (including the server's RowToSQL path), or
+conversion to an explicitly declared DECIMAL column/cast type when storing a
+value. These boundaries round once at their declared scale. Intermediate plan
+rows and Go RowIter results retain the internal apd value so enclosing expressions
+can compare or compute with it. Copying an intermediate row is not a boundary.
+Aggregate serialization emits all declared fractional digits, including zeroes.
+The existing apd negative-zero behavior in decimal arithmetic remains unchanged.
+
+Regressions: `TestAverageReviewRegressions` failed before the fix for 5/11 (grouped
+and moving frames), zero division increment, AVG(v)>0 for 0,0,1e-30, and both
+65-digit AVG forms. `TestAverageDeclaredScale` failed with wire 0 rather than
+0.0000. Existing G6 assertions now compare exact wire strings; the division unit
+test compares 64 signed quotient cases to independently computed rational rounding.
+
+Only four enginetest query fixtures changed bytes, all in queries/queries.go:
+
+- Recursive CTE SUM over SUM(1) and 2.00: 3.00 becomes
+  3.000000000000000000000000000000.
+- Recursive CTE SUM over SUM(1) and 2.00/3.0: 1.666667 becomes
+  1.666667000000000000000000000000.
+- SUM(DISTINCT CAST(i AS DECIMAL)) from mytable: 6 becomes
+  6.000000000000000000000000000000.
+- The one_pk_three_idx query selecting FIRST_VALUE, LAG, COUNT, MAX and window
+  AVG(v2): the AVG zeroes at pk 0, 1, 4 and 5 become 0.0000.
+
+The first three honor existing GMS metadata at scale 30; this does not change its
+unspecified-CAST or union metadata rules. The enginetest decimal normalizer uses
+result-type formatting so internal guard digits do not appear as display bytes.
+Plan fixtures are unchanged. Before/after logs and architecture checks remain in
+.git/patch-evidence/review-fixes/.
+
+
+All review-fix changed-package checks pass except the four pre-existing multiline
+RegexpReplace failures, whose names match an initial-source overlay exactly.
+The required enginetest selection passes; complete enginetest has only the same
+42 TestRegex failures as the earlier untouched-parent evidence. The numeric
+regressions and independent rational-rounding tests pass on native arm64 and
+amd64 through Rosetta. All checks use -p 2, -count=1 and gms_pure_go, with default
+Go caches. Gofmt and whitespace checks pass.

@@ -2528,13 +2528,13 @@ SELECT * FROM cte WHERE  d = 2;`,
 	{
 		Query: "with recursive t (n) as (select sum(1) from dual union all select (2.00) from dual) select sum(n) from t;",
 		Expected: []sql.Row{
-			{"3.00"},
+			{"3.000000000000000000000000000000"},
 		},
 	},
 	{
 		Query: "with recursive t (n) as (select sum(1) from dual union all select (2.00/3.0) from dual) select sum(n) from t;",
 		Expected: []sql.Row{
-			{"1.666667"},
+			{"1.666667000000000000000000000000"},
 		},
 	},
 	{
@@ -4194,7 +4194,7 @@ SELECT * FROM cte WHERE  d = 2;`,
 	{
 		Query: "SELECT SUM( DISTINCT CAST(i AS DECIMAL)) from mytable;",
 		Expected: []sql.Row{
-			{"6"},
+			{"6.000000000000000000000000000000"},
 		},
 	},
 	{
@@ -4696,12 +4696,12 @@ SELECT * FROM cte WHERE  d = 2;`,
 					   avg(v2) over (partition by v1 order by pk)
 				from one_pk_three_idx order by pk`,
 		Expected: []sql.Row{
-			{0, 7, 1, 1, 3, "0"},
-			{1, 7, 2, 2, 3, "0"},
+			{0, 7, 1, 1, 3, "0.0000"},
+			{1, 7, 2, 2, 3, "0.0000"},
 			{2, 7, 3, 3, 3, "0.3333"},
 			{3, 7, 4, 4, 3, "0.7500"},
-			{4, 7, 5, 1, 4, "0"},
-			{5, 7, 6, 1, 5, "0"},
+			{4, 7, 5, 1, 4, "0.0000"},
+			{5, 7, 6, 1, 5, "0.0000"},
 			{6, 7, 7, 1, 6, "3.0000"},
 			{7, 7, nil, 1, 7, "4.0000"},
 		},

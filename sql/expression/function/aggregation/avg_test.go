@@ -47,10 +47,10 @@ func TestAvg_Eval_INT32(t *testing.T) {
 	require.Equal(nil, evalBuffer(t, buffer))
 
 	buffer.Update(ctx, sql.NewRow(int32(1)))
-	require.Equal("1.0000", evalBuffer(t, buffer).(*apd.Decimal).Text('f'))
+	require.Equal("1.0000", averageWire(t, ctx, avgNode, evalBuffer(t, buffer)))
 
 	buffer.Update(ctx, sql.NewRow(int32(2)))
-	require.Equal("1.5000", evalBuffer(t, buffer).(*apd.Decimal).Text('f'))
+	require.Equal("1.5000", averageWire(t, ctx, avgNode, evalBuffer(t, buffer)))
 }
 
 func TestAvg_Eval_UINT64(t *testing.T) {
@@ -63,11 +63,11 @@ func TestAvg_Eval_UINT64(t *testing.T) {
 
 	err := buffer.Update(ctx, sql.NewRow(uint64(1)))
 	require.NoError(err)
-	require.Equal("1.0000", evalBuffer(t, buffer).(*apd.Decimal).Text('f'))
+	require.Equal("1.0000", averageWire(t, ctx, avgNode, evalBuffer(t, buffer)))
 
 	err = buffer.Update(ctx, sql.NewRow(uint64(2)))
 	require.NoError(err)
-	require.Equal("1.5000", evalBuffer(t, buffer).(*apd.Decimal).Text('f'))
+	require.Equal("1.5000", averageWire(t, ctx, avgNode, evalBuffer(t, buffer)))
 }
 
 func TestAvg_Eval_String(t *testing.T) {
@@ -140,7 +140,12 @@ func TestAvg_NUMS_AND_NULLS(t *testing.T) {
 				require.NoError(buf.Update(ctx, row))
 			}
 
-			require.Equal(tt.expected, evalBuffer(t, buf))
+			value := evalBuffer(t, buf)
+			if expected, ok := tt.expected.(*apd.Decimal); ok {
+				require.Equal(expected.Text('f'), averageWire(t, ctx, avgNode, value))
+			} else {
+				require.Equal(tt.expected, value)
+			}
 		})
 	}
 }
@@ -207,4 +212,11 @@ func TestAvg_Distinct(t *testing.T) {
 			require.Equal(tt.expected, evalBuffer(t, buf))
 		})
 	}
+}
+
+func averageWire(t *testing.T, ctx *sql.Context, avg *Avg, value interface{}) string {
+	t.Helper()
+	wire, err := avg.Type(ctx).SQL(ctx, nil, value)
+	require.NoError(t, err)
+	return wire.ToString()
 }
