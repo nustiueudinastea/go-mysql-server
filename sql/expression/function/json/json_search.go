@@ -16,6 +16,7 @@ package json
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/dolthub/jsonpath"
@@ -169,7 +170,19 @@ func jsonSearch(json interface{}, matcher *expression.LikeMatcher, currPath stri
 		return results, false
 	case map[string]interface{}:
 		var results []string
-		for k, v := range js {
+		keys := make([]string, 0, len(js))
+		for key := range js {
+			keys = append(keys, key)
+		}
+		// Match JSON_KEYS and MySQL's binary JSON object ordering.
+		sort.Slice(keys, func(i, j int) bool {
+			if len(keys[i]) != len(keys[j]) {
+				return len(keys[i]) < len(keys[j])
+			}
+			return keys[i] < keys[j]
+		})
+		for _, k := range keys {
+			v := js[k]
 			path := fmt.Sprintf("%s.%s", currPath, k)
 			res, stop := jsonSearch(v, matcher, path, once)
 			if stop {

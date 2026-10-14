@@ -265,3 +265,35 @@ func TestJSONSearch(t *testing.T) {
 		})
 	}
 }
+
+func TestJSONSearchObjectOrder(t *testing.T) {
+	ctx := sql.NewEmptyContext()
+	for _, test := range []struct {
+		doc   string
+		paths []interface{}
+	}{
+		{`{"aa":"x","b":"x"}`, []interface{}{"$.b", "$.aa"}},
+		{`{"ccc":"x","bb":"x","a":"x","z":"x","ab":"x","d":"x","e":"x","f":"x","g":"x","h":"x"}`,
+			[]interface{}{"$.a", "$.d", "$.e", "$.f", "$.g", "$.h", "$.z", "$.ab", "$.bb", "$.ccc"}},
+		{`{"aa":{"bb":"x","a":"x"},"b":["x","x"]}`, []interface{}{"$.b[0]", "$.b[1]", "$.aa.a", "$.aa.bb"}},
+	} {
+		for _, mode := range []string{"one", "all"} {
+			t.Run(test.doc+"/"+mode, func(t *testing.T) {
+				f, err := json.NewJSONSearch(ctx, expression.NewLiteral(test.doc, types.LongText),
+					expression.NewLiteral(mode, types.LongText), expression.NewLiteral("x", types.LongText))
+				require.NoError(t, err)
+				var expected interface{} = test.paths
+				if mode == "one" {
+					expected = test.paths[0]
+				}
+				for i := 0; i < 100; i++ {
+					actual, err := f.Eval(ctx, nil)
+					require.NoError(t, err)
+					value, err := actual.(sql.JSONWrapper).ToInterface(ctx)
+					require.NoError(t, err)
+					require.Equal(t, expected, value, "iteration %d", i)
+				}
+			})
+		}
+	}
+}
