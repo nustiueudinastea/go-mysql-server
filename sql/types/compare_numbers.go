@@ -103,13 +103,32 @@ func (j float64number) compare(other number) int {
 	panic("unreachable")
 }
 
-// compareIntToFloat compares an int64 to a float64 without unnecessary precision loss.
+// compareIntToFloat compares an int64 to a float64 without precision loss or
+// out-of-range float-to-int conversions.
 func compareIntToFloat(i int64number, f float64number) int {
-	if float64(i) > float64(f) || int64(i) > int64(f) {
+	fv := float64(f)
+	if math.IsNaN(fv) {
 		return 1
 	}
-	if float64(i) < float64(f) || int64(i) < int64(f) {
+	if fv < -0x1p63 {
+		return 1
+	}
+	if fv >= 0x1p63 {
 		return -1
+	}
+	trunc := math.Trunc(fv)
+	fi := int64(trunc)
+	if int64(i) < fi {
+		return -1
+	}
+	if int64(i) > fi {
+		return 1
+	}
+	if fv > trunc {
+		return -1
+	}
+	if fv < trunc {
+		return 1
 	}
 	return 0
 }
@@ -118,18 +137,28 @@ func compareFloatToInt(f float64number, i int64number) int {
 	return -compareIntToFloat(i, f)
 }
 
-// compareUintToFloat compares a uint64 to a float64 without unnecessary precision loss.
+// compareUintToFloat compares a uint64 to a float64 without precision loss or
+// out-of-range float-to-uint conversions.
 func compareUintToFloat(u uint64number, f float64number) int {
-	if f < 0 {
+	fv := float64(f)
+	if math.IsNaN(fv) {
 		return 1
 	}
-	if f > math.MaxUint64 {
+	if fv < 0 {
+		return 1
+	}
+	if fv >= 0x1p64 {
 		return -1
 	}
-	if float64(u) > float64(f) || uint64(u) > uint64(f) {
+	trunc := math.Trunc(fv)
+	fu := uint64(trunc)
+	if uint64(u) < fu {
+		return -1
+	}
+	if uint64(u) > fu {
 		return 1
 	}
-	if float64(u) < float64(f) || uint64(u) < uint64(f) {
+	if fv > trunc {
 		return -1
 	}
 	return 0
