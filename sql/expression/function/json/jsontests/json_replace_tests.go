@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"testing"
 
-	json2 "github.com/dolthub/go-mysql-server/sql/expression/function/json"
+	json2 "github.com/nustiueudinastea/go-mysql-server/sql/expression/function/json"
 
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 func JsonReplaceTestCases(t *testing.T, prepare prepareJsonValue) []testCase {

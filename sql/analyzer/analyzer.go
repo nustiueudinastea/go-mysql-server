@@ -27,11 +27,11 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"gopkg.in/src-d/go-errors.v1"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/memo"
-	"github.com/dolthub/go-mysql-server/sql/plan"
-	"github.com/dolthub/go-mysql-server/sql/rowexec"
-	"github.com/dolthub/go-mysql-server/sql/transform"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/memo"
+	"github.com/nustiueudinastea/go-mysql-server/sql/plan"
+	"github.com/nustiueudinastea/go-mysql-server/sql/rowexec"
+	"github.com/nustiueudinastea/go-mysql-server/sql/transform"
 )
 
 const debugAnalyzerKey = "DEBUG_ANALYZER"

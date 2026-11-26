@@ -17,9 +17,9 @@ package function
 import (
 	"fmt"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/expression"
-	"github.com/dolthub/go-mysql-server/sql/types"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
 )
 
 // Oct function provides a string representation for the octal value of N, where N is a decimal (base 10) number.

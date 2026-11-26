@@ -20,14 +20,14 @@ import (
 	"io"
 	"strings"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/expression"
-	"github.com/dolthub/go-mysql-server/sql/expression/function/aggregation"
-	"github.com/dolthub/go-mysql-server/sql/hash"
-	"github.com/dolthub/go-mysql-server/sql/iters"
-	"github.com/dolthub/go-mysql-server/sql/plan"
-	"github.com/dolthub/go-mysql-server/sql/transform"
-	"github.com/dolthub/go-mysql-server/sql/types"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression/function/aggregation"
+	"github.com/nustiueudinastea/go-mysql-server/sql/hash"
+	"github.com/nustiueudinastea/go-mysql-server/sql/iters"
+	"github.com/nustiueudinastea/go-mysql-server/sql/plan"
+	"github.com/nustiueudinastea/go-mysql-server/sql/transform"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
 )
 
 const (

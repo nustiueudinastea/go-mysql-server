@@ -14,7 +14,7 @@
 
 package sql
 
-import "github.com/dolthub/go-mysql-server/sql/sets"
+import "github.com/nustiueudinastea/go-mysql-server/sql/sets"
 
 // Most QFlags indicate the presence of a specific AST node.
 // Flags with more complex meanings have more specific comments.

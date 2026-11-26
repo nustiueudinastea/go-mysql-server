@@ -24,7 +24,7 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 
-	"github.com/dolthub/go-mysql-server/sql/encodings"
+	"github.com/nustiueudinastea/go-mysql-server/sql/encodings"
 )
 
 // Collation represents the collation of a string.

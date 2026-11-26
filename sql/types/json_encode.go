@@ -11,7 +11,7 @@ import (
 
 	"github.com/cockroachdb/apd/v3"
 
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 const hexDigits = "0123456789abcdef"

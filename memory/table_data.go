@@ -22,11 +22,11 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/expression"
-	"github.com/dolthub/go-mysql-server/sql/hash"
-	"github.com/dolthub/go-mysql-server/sql/transform"
-	"github.com/dolthub/go-mysql-server/sql/types"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression"
+	"github.com/nustiueudinastea/go-mysql-server/sql/hash"
+	"github.com/nustiueudinastea/go-mysql-server/sql/transform"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
 )
 
 // TableData encapsulates all schema and data for a table's schema and rows. Other aspects of a table can change

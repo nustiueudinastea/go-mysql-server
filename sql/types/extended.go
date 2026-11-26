@@ -18,7 +18,7 @@ import (
 	"encoding/hex"
 	"errors"
 
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // ExtendedTypeSerializer is the function signature for the extended type serializer.

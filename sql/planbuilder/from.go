@@ -21,13 +21,13 @@ import (
 
 	ast "github.com/dolthub/vitess/go/vt/sqlparser"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/expression"
-	dtablefunctions "github.com/dolthub/go-mysql-server/sql/expression/tablefunction"
-	"github.com/dolthub/go-mysql-server/sql/mysql_db"
-	"github.com/dolthub/go-mysql-server/sql/plan"
-	"github.com/dolthub/go-mysql-server/sql/transform"
-	"github.com/dolthub/go-mysql-server/sql/types"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression"
+	dtablefunctions "github.com/nustiueudinastea/go-mysql-server/sql/expression/tablefunction"
+	"github.com/nustiueudinastea/go-mysql-server/sql/mysql_db"
+	"github.com/nustiueudinastea/go-mysql-server/sql/plan"
+	"github.com/nustiueudinastea/go-mysql-server/sql/transform"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
 )
 
 // TODO outScope will be populated with a source node and column sets

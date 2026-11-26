@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dolthub/go-mysql-server/sql/expression/function/json"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression/function/json"
 
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 func JsonSetTestCases(t *testing.T, prepare prepareJsonValue) []testCase {

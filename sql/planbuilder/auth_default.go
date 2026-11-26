@@ -22,9 +22,9 @@ import (
 	"github.com/dolthub/vitess/go/mysql"
 	ast "github.com/dolthub/vitess/go/vt/sqlparser"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/mysql_db"
-	"github.com/dolthub/go-mysql-server/sql/plan"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/mysql_db"
+	"github.com/nustiueudinastea/go-mysql-server/sql/plan"
 )
 
 // defaultAuthorizationQueryState contains query-specific state for defaultAuthorizationHandler.

@@ -14,7 +14,7 @@
 
 package expression
 
-import "github.com/dolthub/go-mysql-server/sql"
+import "github.com/nustiueudinastea/go-mysql-server/sql"
 
 // ExpressionFactory allows integrators to provide custom implementations of
 // expressions, such as IS NULL and IS NOT NULL.

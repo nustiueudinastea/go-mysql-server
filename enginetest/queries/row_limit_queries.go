@@ -17,8 +17,8 @@ package queries
 import (
 	"fmt"
 
-	"github.com/dolthub/go-mysql-server/sql/analyzer/analyzererrors"
-	"github.com/dolthub/go-mysql-server/sql/types"
+	"github.com/nustiueudinastea/go-mysql-server/sql/analyzer/analyzererrors"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
 )
 
 var longChar = make([]byte, 32700)

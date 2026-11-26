@@ -3,8 +3,8 @@ package driver
 import (
 	"context"
 
-	"github.com/dolthub/go-mysql-server/memory"
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/memory"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // A SessionBuilder creates SQL sessions.

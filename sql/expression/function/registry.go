@@ -19,12 +19,12 @@ import (
 
 	"gopkg.in/src-d/go-errors.v1"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/expression/function/aggregation"
-	"github.com/dolthub/go-mysql-server/sql/expression/function/aggregation/window"
-	"github.com/dolthub/go-mysql-server/sql/expression/function/json"
-	"github.com/dolthub/go-mysql-server/sql/expression/function/spatial"
-	"github.com/dolthub/go-mysql-server/sql/expression/function/vector"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression/function/aggregation"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression/function/aggregation/window"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression/function/json"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression/function/spatial"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression/function/vector"
 )
 
 // ErrFunctionAlreadyRegistered is thrown when a function is already registered

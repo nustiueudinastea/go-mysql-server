@@ -23,15 +23,15 @@ import (
 	"github.com/dolthub/sqllogictest/go/logictest"
 	"github.com/stretchr/testify/require"
 
-	"github.com/dolthub/go-mysql-server/enginetest"
-	"github.com/dolthub/go-mysql-server/enginetest/queries"
-	"github.com/dolthub/go-mysql-server/enginetest/scriptgen/setup"
-	memharness "github.com/dolthub/go-mysql-server/enginetest/sqllogictest/harness"
-	"github.com/dolthub/go-mysql-server/memory"
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/expression"
-	"github.com/dolthub/go-mysql-server/sql/types"
-	_ "github.com/dolthub/go-mysql-server/sql/variables"
+	"github.com/nustiueudinastea/go-mysql-server/enginetest"
+	"github.com/nustiueudinastea/go-mysql-server/enginetest/queries"
+	"github.com/nustiueudinastea/go-mysql-server/enginetest/scriptgen/setup"
+	memharness "github.com/nustiueudinastea/go-mysql-server/enginetest/sqllogictest/harness"
+	"github.com/nustiueudinastea/go-mysql-server/memory"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
+	_ "github.com/nustiueudinastea/go-mysql-server/sql/variables"
 )
 
 // This file is for validating both the engine itself and the in-memory database implementation in the memory package.

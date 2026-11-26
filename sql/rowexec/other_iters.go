@@ -18,10 +18,10 @@ import (
 	"io"
 	"sync"
 
-	"github.com/dolthub/go-mysql-server/sql/hash"
+	"github.com/nustiueudinastea/go-mysql-server/sql/hash"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/plan"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/plan"
 )
 
 // TODO: organize all these iterators in their own appropriately named file (see TODO in other.go)

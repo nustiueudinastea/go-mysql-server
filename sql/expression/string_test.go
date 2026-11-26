@@ -28,15 +28,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/expression"
-	"github.com/dolthub/go-mysql-server/sql/expression/function"
-	"github.com/dolthub/go-mysql-server/sql/expression/function/aggregation"
-	"github.com/dolthub/go-mysql-server/sql/expression/function/aggregation/window"
-	"github.com/dolthub/go-mysql-server/sql/expression/function/json"
-	"github.com/dolthub/go-mysql-server/sql/expression/function/spatial"
-	"github.com/dolthub/go-mysql-server/sql/plan"
-	"github.com/dolthub/go-mysql-server/sql/types"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression/function"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression/function/aggregation"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression/function/aggregation/window"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression/function/json"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression/function/spatial"
+	"github.com/nustiueudinastea/go-mysql-server/sql/plan"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
 )
 
 // These tests keep expression SQL strings and their parsed values together across expression packages.

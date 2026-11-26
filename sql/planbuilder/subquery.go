@@ -14,7 +14,7 @@
 
 package planbuilder
 
-import "github.com/dolthub/go-mysql-server/sql"
+import "github.com/nustiueudinastea/go-mysql-server/sql"
 
 type subquery struct {
 	parent     *subquery

@@ -18,10 +18,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dolthub/go-mysql-server/sql/mysql_db"
+	"github.com/nustiueudinastea/go-mysql-server/sql/mysql_db"
 
-	"github.com/dolthub/go-mysql-server/memory"
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/memory"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // ResolvedTable represents a resolved SQL Table.

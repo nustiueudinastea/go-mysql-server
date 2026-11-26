@@ -13,10 +13,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/test/bufconn"
 
-	sqle "github.com/dolthub/go-mysql-server"
-	"github.com/dolthub/go-mysql-server/memory"
-	"github.com/dolthub/go-mysql-server/server"
-	gsql "github.com/dolthub/go-mysql-server/sql"
+	sqle "github.com/nustiueudinastea/go-mysql-server"
+	"github.com/nustiueudinastea/go-mysql-server/memory"
+	"github.com/nustiueudinastea/go-mysql-server/server"
+	gsql "github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // TestServerCustomListener verifies a caller can provide their own net.Conn implementation for the server to use

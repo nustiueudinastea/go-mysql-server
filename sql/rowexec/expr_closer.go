@@ -15,8 +15,8 @@
 package rowexec
 
 import (
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/transform"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/transform"
 )
 
 // ExprCloserIter ensures that all expressions that implement sql.Closer are closed. This is implemented as a capturing

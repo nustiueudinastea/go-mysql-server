@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // VirtualColumnTable is a sql.TableNode that combines a ResolvedTable with a Project, the latter of which is used

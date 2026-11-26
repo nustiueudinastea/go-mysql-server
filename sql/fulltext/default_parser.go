@@ -19,7 +19,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // parserState represents the state of the parser as it iterates over runes.

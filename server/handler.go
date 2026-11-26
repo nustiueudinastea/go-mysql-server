@@ -33,14 +33,14 @@ import (
 	otel "go.opentelemetry.io/otel/trace"
 	"gopkg.in/src-d/go-errors.v1"
 
-	sqle "github.com/dolthub/go-mysql-server"
-	"github.com/dolthub/go-mysql-server/errguard"
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/analyzer"
-	"github.com/dolthub/go-mysql-server/sql/iters"
-	"github.com/dolthub/go-mysql-server/sql/plan"
-	"github.com/dolthub/go-mysql-server/sql/rowexec"
-	"github.com/dolthub/go-mysql-server/sql/types"
+	sqle "github.com/nustiueudinastea/go-mysql-server"
+	"github.com/nustiueudinastea/go-mysql-server/errguard"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/analyzer"
+	"github.com/nustiueudinastea/go-mysql-server/sql/iters"
+	"github.com/nustiueudinastea/go-mysql-server/sql/plan"
+	"github.com/nustiueudinastea/go-mysql-server/sql/rowexec"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
 )
 
 // ErrRowTimeout will be returned if the wait for the row is longer than the connection timeout

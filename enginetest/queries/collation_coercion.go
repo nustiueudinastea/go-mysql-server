@@ -15,7 +15,7 @@
 package queries
 
 import (
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // CollationCoercionTest is used to test the resulting collation and coercion of a SQL expression

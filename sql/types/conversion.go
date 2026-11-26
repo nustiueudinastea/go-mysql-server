@@ -28,7 +28,7 @@ import (
 	"github.com/dolthub/vitess/go/vt/sqlparser"
 	"gopkg.in/src-d/go-errors.v1"
 
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // ApproximateTypeFromValue returns the closest matching type to the given value. For example, an int16 will return SMALLINT.

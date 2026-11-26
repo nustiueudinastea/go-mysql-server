@@ -27,7 +27,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dolthub/go-mysql-server/enginetest/scriptgen/setup"
+	"github.com/nustiueudinastea/go-mysql-server/enginetest/scriptgen/setup"
 )
 
 //go:generate go run ./main.go -out ../../setup/setup_data.sg.go -pkg setup setup ../../setup/scripts

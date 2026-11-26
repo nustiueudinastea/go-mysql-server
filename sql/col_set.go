@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/dolthub/go-mysql-server/sql/sets"
+	"github.com/nustiueudinastea/go-mysql-server/sql/sets"
 )
 
 type ColumnId uint16

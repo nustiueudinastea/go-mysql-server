@@ -15,8 +15,8 @@
 package queries
 
 import (
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/types"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
 )
 
 // TransactionTest is a script to test transaction correctness. It's similar to ScriptTest, but its assertions name

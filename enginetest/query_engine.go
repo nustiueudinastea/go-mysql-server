@@ -17,9 +17,9 @@ package enginetest
 import (
 	"github.com/dolthub/vitess/go/vt/sqlparser"
 
-	sqle "github.com/dolthub/go-mysql-server"
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/analyzer"
+	sqle "github.com/nustiueudinastea/go-mysql-server"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/analyzer"
 )
 
 type QueryEngine interface {

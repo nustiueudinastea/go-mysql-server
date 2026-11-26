@@ -20,9 +20,9 @@ import (
 
 	"github.com/dolthub/vitess/go/mysql"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/expression/function"
-	"github.com/dolthub/go-mysql-server/sql/types"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression/function"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
 )
 
 // FunctionQueryTests contains queries that primarily test SQL function calls

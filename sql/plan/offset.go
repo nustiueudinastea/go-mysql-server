@@ -15,7 +15,7 @@
 package plan
 
 import (
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // Offset is a node that skips the first N rows.

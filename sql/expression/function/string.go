@@ -26,9 +26,9 @@ import (
 
 	"github.com/cockroachdb/apd/v3"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/encodings"
-	"github.com/dolthub/go-mysql-server/sql/types"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/encodings"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
 )
 
 // Ascii implements the sql function "ascii" which returns the numeric value of the leftmost character

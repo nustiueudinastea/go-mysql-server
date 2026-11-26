@@ -21,7 +21,7 @@ import (
 
 	ast "github.com/dolthub/vitess/go/vt/sqlparser"
 
-	"github.com/dolthub/go-mysql-server/sql/plan"
+	"github.com/nustiueudinastea/go-mysql-server/sql/plan"
 )
 
 func (b *Builder) buildCreateSpatialRefSys(inScope *scope, n *ast.CreateSpatialRefSys) (outScope *scope) {

@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // enabledEvent is used for storing a list of events that are enabled in EventScheduler.

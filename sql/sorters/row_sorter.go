@@ -15,7 +15,7 @@
 package sorters
 
 import (
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // RowSorter is a sorter implementation for Row slices using SortFields for the comparison.

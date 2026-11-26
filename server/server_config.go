@@ -22,8 +22,8 @@ import (
 	"github.com/dolthub/vitess/go/mysql"
 	"go.opentelemetry.io/otel/trace"
 
-	gms "github.com/dolthub/go-mysql-server"
-	"github.com/dolthub/go-mysql-server/sql"
+	gms "github.com/nustiueudinastea/go-mysql-server"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // Server is a MySQL server for SQLe engines.

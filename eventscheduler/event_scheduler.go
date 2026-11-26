@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/dolthub/go-mysql-server/errguard"
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/analyzer"
-	"github.com/dolthub/go-mysql-server/sql/mysql_db"
+	"github.com/nustiueudinastea/go-mysql-server/errguard"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/analyzer"
+	"github.com/nustiueudinastea/go-mysql-server/sql/mysql_db"
 )
 
 // ErrEventSchedulerDisabled is returned when user tries to set `event_scheduler_notifier` global system variable to ON or OFF

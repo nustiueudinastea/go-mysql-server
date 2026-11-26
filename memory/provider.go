@@ -5,8 +5,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/dolthub/go-mysql-server/internal/similartext"
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/internal/similartext"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 var _ sql.DatabaseProvider = (*DbProvider)(nil)

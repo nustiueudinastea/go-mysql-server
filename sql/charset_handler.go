@@ -17,7 +17,7 @@ package sql
 import (
 	"unicode/utf8"
 
-	"github.com/dolthub/go-mysql-server/sql/encodings"
+	"github.com/nustiueudinastea/go-mysql-server/sql/encodings"
 )
 
 // CharSetHandler measures character counts and calculates character

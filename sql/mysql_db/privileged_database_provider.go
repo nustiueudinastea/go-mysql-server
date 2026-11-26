@@ -18,9 +18,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dolthub/go-mysql-server/sql/fulltext"
+	"github.com/nustiueudinastea/go-mysql-server/sql/fulltext"
 
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // PrivilegedDatabaseProvider is a wrapper around a normal sql.DatabaseProvider that takes a context's client's

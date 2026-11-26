@@ -29,7 +29,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/dolthub/go-mysql-server/sql/sqlredact"
+	"github.com/nustiueudinastea/go-mysql-server/sql/sqlredact"
 )
 
 type key uint
@@ -48,7 +48,7 @@ const (
 	collationConnectionSysVarName    = "collation_connection"
 )
 
-var NoopTracer = trace.NewNoopTracerProvider().Tracer("github.com/dolthub/go-mysql-server/sql")
+var NoopTracer = trace.NewNoopTracerProvider().Tracer("github.com/nustiueudinastea/go-mysql-server/sql")
 var _, noopSpan = NoopTracer.Start(context.Background(), "noop")
 
 // Client holds session user information.

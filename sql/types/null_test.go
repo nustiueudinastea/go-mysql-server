@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

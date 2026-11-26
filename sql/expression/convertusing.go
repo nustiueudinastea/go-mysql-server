@@ -20,8 +20,8 @@ import (
 
 	"github.com/dolthub/vitess/go/mysql"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/encodings"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/encodings"
 )
 
 // ConvertUsing represents a CONVERT(X USING T) operation that casts the expression X to the character set T.

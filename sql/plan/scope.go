@@ -15,8 +15,8 @@
 package plan
 
 import (
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/transform"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/transform"
 )
 
 // Scope of the analysis being performed, used when analyzing subqueries to give such analysis access to outer scope.

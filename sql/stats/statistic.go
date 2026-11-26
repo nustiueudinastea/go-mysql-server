@@ -26,8 +26,8 @@ import (
 
 	"github.com/dolthub/vitess/go/vt/sqlparser"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/types"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
 )
 
 func NewStatistic(rowCount, distinctCount, nullCount, avgSize uint64, createdAt time.Time, qualifier sql.StatQualifier, columns []string, types []sql.Type, histogram []sql.HistogramBucket, class sql.IndexClass, lowerBound sql.Row) *Statistic {

@@ -19,13 +19,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/dolthub/go-mysql-server/internal/similartext"
-	"github.com/dolthub/go-mysql-server/memory"
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/binlogreplication"
-	"github.com/dolthub/go-mysql-server/sql/expression/function"
-	"github.com/dolthub/go-mysql-server/sql/information_schema"
-	"github.com/dolthub/go-mysql-server/sql/mysql_db"
+	"github.com/nustiueudinastea/go-mysql-server/internal/similartext"
+	"github.com/nustiueudinastea/go-mysql-server/memory"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/binlogreplication"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression/function"
+	"github.com/nustiueudinastea/go-mysql-server/sql/information_schema"
+	"github.com/nustiueudinastea/go-mysql-server/sql/mysql_db"
 )
 
 type Catalog struct {

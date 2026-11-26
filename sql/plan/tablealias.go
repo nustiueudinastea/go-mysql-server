@@ -15,7 +15,7 @@
 package plan
 
 import (
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // TableAlias is a node that acts as a table with a given name.

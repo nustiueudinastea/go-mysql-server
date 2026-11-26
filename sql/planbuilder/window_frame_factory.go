@@ -3,7 +3,7 @@ package planbuilder
 import (
 	ast "github.com/dolthub/vitess/go/vt/sqlparser"
 
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 //go:generate go run ../../optgen/cmd/optgen/main.go -out window_frame_factory.og.go -pkg planbuilder frameFactory window_frame_factory.go

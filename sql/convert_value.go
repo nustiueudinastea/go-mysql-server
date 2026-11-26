@@ -3,7 +3,7 @@ package sql
 import (
 	"fmt"
 
-	"github.com/dolthub/go-mysql-server/sql/values"
+	"github.com/nustiueudinastea/go-mysql-server/sql/values"
 
 	"github.com/dolthub/vitess/go/vt/proto/query"
 )

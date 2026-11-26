@@ -19,10 +19,10 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/expression"
-	"github.com/dolthub/go-mysql-server/sql/memo"
-	"github.com/dolthub/go-mysql-server/sql/planbuilder"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression"
+	"github.com/nustiueudinastea/go-mysql-server/sql/memo"
+	"github.com/nustiueudinastea/go-mysql-server/sql/planbuilder"
 )
 
 // indexedExprEntry holds a hidden system column's generated expression and the column name

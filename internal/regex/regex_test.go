@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dolthub/go-mysql-server/internal/regex"
+	"github.com/nustiueudinastea/go-mysql-server/internal/regex"
 )
 
 func TestMatches(t *testing.T) {

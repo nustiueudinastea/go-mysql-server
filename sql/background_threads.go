@@ -19,7 +19,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/dolthub/go-mysql-server/errguard"
+	"github.com/nustiueudinastea/go-mysql-server/errguard"
 )
 
 var ErrCannotAddToClosedBackgroundThreads = errors.New("cannot add to a close background threads instance")

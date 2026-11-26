@@ -17,7 +17,7 @@ package fulltext
 import (
 	"fmt"
 
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // MultiTableEditor wraps multiple table editors, allowing for a single function to handle writes across multiple tables.

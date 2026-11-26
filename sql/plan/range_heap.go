@@ -17,8 +17,8 @@ package plan
 import (
 	"fmt"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/expression"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression"
 )
 
 // RangeHeap is a Node that wraps a table with min and max range columns. When used as a secondary provider in Join

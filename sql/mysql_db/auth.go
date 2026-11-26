@@ -27,7 +27,7 @@ import (
 	"github.com/dolthub/vitess/go/mysql"
 	"github.com/sirupsen/logrus"
 
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // DefaultAuthMethod specifies the MySQL auth protocol (e.g. mysql_native_password,

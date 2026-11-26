@@ -12,7 +12,7 @@ import (
 
 	"golang.org/x/tools/imports"
 
-	"github.com/dolthub/go-mysql-server/optgen/cmd/support"
+	"github.com/nustiueudinastea/go-mysql-server/optgen/cmd/support"
 )
 
 //go:generate go run main.go -out ../../../sql/expression/function/aggregation/unary_aggs.og.go -pkg aggregation aggs
@@ -154,7 +154,7 @@ func generate(defines support.GenDefs, w io.Writer, genFunc func(defines support
 	var err error
 
 	if useGoFmt {
-		b, err = imports.Process("github.com/dolthub/go-mysql-server", buf.Bytes(), nil)
+		b, err = imports.Process("github.com/nustiueudinastea/go-mysql-server", buf.Bytes(), nil)
 		if err != nil {
 			// Write out incorrect source for easier debugging.
 			b = buf.Bytes()

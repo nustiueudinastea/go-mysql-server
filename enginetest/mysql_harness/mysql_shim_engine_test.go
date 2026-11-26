@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/dolthub/go-mysql-server/enginetest"
+	"github.com/nustiueudinastea/go-mysql-server/enginetest"
 )
 
 // These tests run engine tests of your choice against a live MySQL server to validate that enginetest

@@ -27,11 +27,11 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/dolthub/go-mysql-server/enginetest"
-	"github.com/dolthub/go-mysql-server/enginetest/queries"
-	"github.com/dolthub/go-mysql-server/enginetest/scriptgen/setup"
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/planbuilder"
+	"github.com/nustiueudinastea/go-mysql-server/enginetest"
+	"github.com/nustiueudinastea/go-mysql-server/enginetest/queries"
+	"github.com/nustiueudinastea/go-mysql-server/enginetest/scriptgen/setup"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/planbuilder"
 )
 
 //go:generate go run ./main.go -srcRoot=../../../../ plan ../../testdata/spec.yaml
@@ -144,8 +144,8 @@ func writeImportsForScriptTests(buf *bytes.Buffer) {
 	"fmt"`)
 	_, _ = fmt.Fprint(buf, "\n")
 	_, _ = fmt.Fprint(buf, `
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/types"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
 )`)
 	_, _ = fmt.Fprint(buf, "\n\n")
 }

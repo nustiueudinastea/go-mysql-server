@@ -32,7 +32,7 @@ import (
 	"github.com/cockroachdb/apd/v3"
 	"github.com/dolthub/jsonpath"
 
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // JsonToMySqlString generates a string representation of a sql.JSONWrapper that is compatible with MySQL's JSON output, including spaces.

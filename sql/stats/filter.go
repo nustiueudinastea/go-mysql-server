@@ -19,8 +19,8 @@ import (
 
 	"github.com/dolthub/vitess/go/vt/proto/query"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/types"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
 )
 
 func Union(ctx *sql.Context, b1, b2 []sql.HistogramBucket, types []sql.Type) ([]sql.HistogramBucket, error) {

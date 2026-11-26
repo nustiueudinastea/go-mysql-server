@@ -17,7 +17,7 @@ package in_mem_table
 import (
 	"errors"
 
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // Given operations for converting an IndexedSet entry into a sql.Row, these

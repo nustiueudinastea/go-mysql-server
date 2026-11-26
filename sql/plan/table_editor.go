@@ -18,7 +18,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 // TableEditorIter wraps the given iterator and calls the Begin and Complete functions on the given table.

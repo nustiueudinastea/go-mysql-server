@@ -19,8 +19,8 @@ import (
 
 	"github.com/dolthub/vitess/go/sqltypes"
 
-	. "github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/types"
+	. "github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
 )
 
 // newMySQLTablesTable returns a InformationSchemaTable for MySQL.

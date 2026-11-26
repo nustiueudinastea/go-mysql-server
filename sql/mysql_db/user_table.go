@@ -19,10 +19,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/expression"
-	"github.com/dolthub/go-mysql-server/sql/in_mem_table"
-	"github.com/dolthub/go-mysql-server/sql/types"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression"
+	"github.com/nustiueudinastea/go-mysql-server/sql/in_mem_table"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
 
 	"github.com/dolthub/vitess/go/sqltypes"
 )

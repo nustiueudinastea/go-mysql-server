@@ -15,11 +15,11 @@
 package queries
 
 import (
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/expression"
-	"github.com/dolthub/go-mysql-server/sql/expression/function/aggregation"
-	"github.com/dolthub/go-mysql-server/sql/types"
-	"github.com/dolthub/go-mysql-server/testutils"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression"
+	"github.com/nustiueudinastea/go-mysql-server/sql/expression/function/aggregation"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
+	"github.com/nustiueudinastea/go-mysql-server/testutils"
 )
 
 // WindowFunctionsScriptTests tests window function queries such as rank, dense_rank, percent_rank,

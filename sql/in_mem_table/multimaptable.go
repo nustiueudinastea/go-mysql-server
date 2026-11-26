@@ -17,7 +17,7 @@ package in_mem_table
 import (
 	"sync"
 
-	"github.com/dolthub/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
 )
 
 func ToRows[V any](ctx *sql.Context, ops *ValueOps[V], is IndexedSet[V]) ([]sql.Row, error) {

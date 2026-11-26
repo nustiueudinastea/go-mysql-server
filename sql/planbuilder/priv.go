@@ -22,8 +22,8 @@ import (
 	"github.com/dolthub/vitess/go/mysql"
 	ast "github.com/dolthub/vitess/go/vt/sqlparser"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/plan"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/plan"
 )
 
 func convertAccountName(names ...ast.AccountName) []plan.UserName {

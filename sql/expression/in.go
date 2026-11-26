@@ -17,9 +17,9 @@ package expression
 import (
 	"fmt"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/hash"
-	"github.com/dolthub/go-mysql-server/sql/types"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/hash"
+	"github.com/nustiueudinastea/go-mysql-server/sql/types"
 )
 
 // InTuple is an expression that checks an expression is inside a list of expressions.

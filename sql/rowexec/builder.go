@@ -17,8 +17,8 @@ package rowexec
 import (
 	"runtime/trace"
 
-	"github.com/dolthub/go-mysql-server/sql"
-	"github.com/dolthub/go-mysql-server/sql/plan"
+	"github.com/nustiueudinastea/go-mysql-server/sql"
+	"github.com/nustiueudinastea/go-mysql-server/sql/plan"
 )
 
 // BaseBuilder converts a plan tree into a RowIter tree. All relational nodes
